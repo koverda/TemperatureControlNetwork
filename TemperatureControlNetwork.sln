@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.9.34714.143
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TemperatureControlNetwork", "TemperatureControlNetwork.csproj", "{50572F6A-C989-4110-A7C1-1937D9BA34F2}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{50572F6A-C989-4110-A7C1-1937D9BA34F2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{50572F6A-C989-4110-A7C1-1937D9BA34F2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{50572F6A-C989-4110-A7C1-1937D9BA34F2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{50572F6A-C989-4110-A7C1-1937D9BA34F2}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {63565D8A-6EEF-4498-83BB-F31158E4F619}
+	EndGlobalSection
+EndGlobal
