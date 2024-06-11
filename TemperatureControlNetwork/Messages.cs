@@ -13,6 +13,10 @@ public abstract class Message
 
 public class DataMessage(string data) : Message
 {
+    public DataMessage() : this("")
+    {
+    }
+
     public override MessageType Type => MessageType.Data;
     public string Data { get; init; } = data;
 }

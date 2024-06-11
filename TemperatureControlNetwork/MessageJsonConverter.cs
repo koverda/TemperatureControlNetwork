@@ -10,7 +10,7 @@ public class MessageJsonConverter : JsonConverter<Message>
         using var doc = JsonDocument.ParseValue(ref reader);
         if (!doc.RootElement.TryGetProperty("Type", out var typeElement)) throw new JsonException("Missing Type property.");
 
-        var type = Enum.Parse<MessageType>(typeElement.GetString() ?? string.Empty);
+        var type = (MessageType)typeElement.GetInt32();
 
         switch (type)
         {

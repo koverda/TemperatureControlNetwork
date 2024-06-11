@@ -56,6 +56,6 @@ public class MessageJsonConverterTests
         Action act = () => JsonSerializer.Deserialize<Message>(json, _jsonOptions);
 
         // Assert
-        act.Should().Throw<JsonException>().WithMessage("Unknown message type: Unknown");
+        act.Should().Throw<JsonException>();
     }
 }

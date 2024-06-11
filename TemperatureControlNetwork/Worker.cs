@@ -11,10 +11,7 @@ public class Worker(ChannelReader<string> channelReader, int id)
     {
         await foreach (var item in channelReader.ReadAllAsync())
         {
-            var message = JsonSerializer.Deserialize<Message>(item, new JsonSerializerOptions
-            {
-                Converters = { new MessageJsonConverter() }
-            });
+            var message = JsonSerializer.Deserialize<Message>(item);
 
             if (message is ControlMessage controlMessage)
             {
