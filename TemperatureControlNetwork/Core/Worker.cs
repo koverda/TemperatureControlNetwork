@@ -11,7 +11,7 @@ public class Worker
     private readonly ChannelWriter<string> _responseChannelWriter;
     private bool _isActive;
     private int _messagesProcessed;
-    private List<WorkerStatus> neighborStatusList;
+    private List<WorkerStatus> _neighborStatusList = [];
 
     public Worker(
         ChannelReader<string> channelReader

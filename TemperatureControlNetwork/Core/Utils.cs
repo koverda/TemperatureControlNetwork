@@ -2,7 +2,7 @@
 {
     public static class Utils
     {
-        private static readonly Random _random = new Random();
+        private static readonly Random Random = new();
 
         /// <summary>
         /// Adjusts the temperature by a small random value within the specified range.
@@ -13,7 +13,7 @@
         public static double AdjustTemperature(double temperature, double maxAdjustment = .1)
         {
             // Generate a random adjustment value between -maxAdjustment and +maxAdjustment
-            double adjustment = (_random.NextDouble() * 2 - 1) * maxAdjustment;
+            double adjustment = (Random.NextDouble() * 2 - 1) * maxAdjustment;
             return temperature + adjustment;
         }
     }

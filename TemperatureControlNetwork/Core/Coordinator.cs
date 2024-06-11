@@ -6,14 +6,16 @@ namespace TemperatureControlNetwork.Core;
 public class Coordinator
 {
     private readonly CancellationToken _cancellationToken;
-    private readonly List<Channel<string>> _workerChannels;
+    private readonly Random _random;
+
     private readonly Channel<string> _responseChannel;
     private readonly int _numberOfWorkers;
-    private readonly Random _random;
-    private readonly List<Worker> _workers;
-    private List<WorkerStatus> _workerStatusList;
 
-    private readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
+    private readonly List<Channel<string>> _workerChannels = [];
+    private readonly List<Worker> _workers = [];
+    private List<WorkerStatus> _workerStatusList = [];
+
+    private readonly JsonSerializerOptions _jsonOptions = new()
     {
         Converters = { new MessageJsonConverter() }
     };
@@ -21,11 +23,8 @@ public class Coordinator
     public Coordinator(int numberOfWorkers, CancellationToken cancellationToken)
     {
         _numberOfWorkers = numberOfWorkers;
-        _workers = new List<Worker>();
         _responseChannel = Channel.CreateUnbounded<string>();
-        _workerChannels = new List<Channel<string>>();
         _cancellationToken = cancellationToken;
-        _workerStatusList = new List<WorkerStatus>();
         _random = new Random();
 
         for (int i = 0; i < _numberOfWorkers; i++)
