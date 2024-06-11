@@ -1,9 +1,10 @@
-﻿namespace TemperatureControlNetwork;
+﻿namespace TemperatureControlNetwork.Core;
 
 public enum MessageType
 {
     Data,
-    Control
+    Control,
+    Response
 }
 
 public abstract class Message
@@ -26,4 +27,15 @@ public class ControlMessage : Message
     public override MessageType Type => MessageType.Control;
     public int WorkerId { get; init; }
     public bool Activate { get; init; }
+}
+
+public class ResponseMessage(string response) : Message
+{
+    public ResponseMessage() : this("")
+    {
+    }
+
+    public override MessageType Type => MessageType.Response;
+    public int WorkerId { get; set; }
+    public string Response { get; set; } = response;
 }

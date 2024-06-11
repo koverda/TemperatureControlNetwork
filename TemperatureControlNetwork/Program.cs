@@ -1,4 +1,6 @@
-﻿namespace TemperatureControlNetwork;
+﻿using TemperatureControlNetwork.Core;
+
+namespace TemperatureControlNetwork;
 
 internal static class Program
 {

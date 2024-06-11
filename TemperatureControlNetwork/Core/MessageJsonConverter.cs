@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace TemperatureControlNetwork;
+namespace TemperatureControlNetwork.Core;
 
 public class MessageJsonConverter : JsonConverter<Message>
 {
