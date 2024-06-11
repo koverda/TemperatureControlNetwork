@@ -17,7 +17,6 @@ public class Worker
     private double _temperature = 20.0;
     private readonly double _minTemperature = 10.0;
     private readonly double _maxTemperature = 30.0;
-    private readonly double _adjustmentStep = 0.5;
     private readonly Random _random = new Random();
 
     public Worker(
@@ -97,7 +96,7 @@ public class Worker
                 _temperature = Math.Max(_temperature - adjustmentStep, _minTemperature);
             }
 
-            Console.WriteLine($"Worker {_id} temperature: {_temperature}°C");
+            Console.WriteLine($"Worker {_id} temperature: {_temperature:##.#}°C");
             await Task.Delay(1000); // Update temperature every second
         }
     }
