@@ -57,7 +57,7 @@ public class Coordinator
                 await workerChannel.Writer.WriteAsync(dataMessageJson);
             }
 
-            await Task.Delay(1000); // Simulate a delay between sending data
+            await Task.Delay(1); // Simulate a delay between sending data
 
             // Randomly activate or deactivate workers
             if (_random.Next(0, 2) == 0)
