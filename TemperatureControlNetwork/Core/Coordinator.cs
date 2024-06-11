@@ -15,10 +15,6 @@ public class Coordinator
     private readonly List<Worker> _workers = [];
     private List<WorkerStatus> _workerStatusList = [];
 
-    private readonly JsonSerializerOptions _jsonOptions = new()
-    {
-        Converters = { new MessageJsonConverter() }
-    };
 
     public Coordinator(int numberOfWorkers, CancellationToken cancellationToken)
     {
@@ -31,7 +27,7 @@ public class Coordinator
         {
             var workerChannel = Channel.CreateUnbounded<string>();
             _workerChannels.Add(workerChannel);
-            _workers.Add(new Worker(workerChannel.Reader, _responseChannel.Writer, i, _jsonOptions));
+            _workers.Add(new Worker(workerChannel.Reader, _responseChannel.Writer, i));
             _workerStatusList.Add(new WorkerStatus(i, true)); // all start as active
         }
     }
@@ -51,7 +47,7 @@ public class Coordinator
         while (!_cancellationToken.IsCancellationRequested)
         {
             var dataMessage = new DataMessage { Data = GenerateRandomData() };
-            var dataMessageJson = JsonSerializer.Serialize(dataMessage, _jsonOptions);
+            var dataMessageJson = MessageJsonSerializer.Serialize(dataMessage);
 
             // Send data to all active workers
             foreach (var workerChannel in _workerChannels)
@@ -70,7 +66,7 @@ public class Coordinator
                     WorkerId = workerId,
                     Activate = _random.Next(0, 2) == 0
                 };
-                string controlMessageJson = JsonSerializer.Serialize(controlMessage, _jsonOptions);
+                string controlMessageJson = MessageJsonSerializer.Serialize(controlMessage);
                 await _workerChannels[workerId].Writer.WriteAsync(controlMessageJson);
             }
         }
@@ -88,11 +84,24 @@ public class Coordinator
     {
         await foreach (var item in _responseChannel.Reader.ReadAllAsync())
         {
-            var message = JsonSerializer.Deserialize<Message>(item, _jsonOptions);
+            var message = MessageJsonSerializer.Deserialize<Message>(item);
 
             if (message is ResponseMessage responseMessage)
             {
                 Console.WriteLine($"Coordinator received response from Worker {responseMessage.WorkerId}: {responseMessage.Response}");
+            }
+
+            // Workers activated / deactivated successfully
+            if (message is StatusUpdateResponseMessage activationResponseMessage)
+            {
+                _workerStatusList.First(w => w.Id == activationResponseMessage.WorkerId).Active = activationResponseMessage.Active;
+
+                var workerStatusUpdateMessage = new StatusUpdateMessage(_workerStatusList);
+                // Send data to all active workers
+                foreach (var workerChannel in _workerChannels)
+                {
+                    await workerChannel.Writer.WriteAsync(JsonSerializer.Serialize(workerStatusUpdateMessage));
+                }
             }
         }
     }

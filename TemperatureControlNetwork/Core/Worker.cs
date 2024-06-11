@@ -8,7 +8,6 @@ public class Worker
 {
     private readonly ChannelReader<string> _channelReader;
     private readonly int _id;
-    private readonly JsonSerializerOptions _jsonOptions;
     private readonly ChannelWriter<string> _responseChannelWriter;
     private bool _isActive;
     private int _messagesProcessed;
@@ -22,13 +21,12 @@ public class Worker
     public Worker(
         ChannelReader<string> channelReader
         , ChannelWriter<string> responseChannelWriter
-        , int id, JsonSerializerOptions jsonOptions
+        , int id
     )
     {
         _channelReader = channelReader;
         _responseChannelWriter = responseChannelWriter;
         _id = id;
-        _jsonOptions = jsonOptions;
         _messagesProcessed = 0;
         _isActive = true; // Workers start as active
     }
@@ -40,7 +38,7 @@ public class Worker
 
         await foreach (string item in _channelReader.ReadAllAsync())
         {
-            var message = JsonSerializer.Deserialize<Message>(item, _jsonOptions);
+            var message = MessageJsonSerializer.Deserialize<Message>(item);
 
             _messagesProcessed++;
 
@@ -48,12 +46,10 @@ public class Worker
             {
                 case ControlMessage controlMessage:
                 {
-                    if (controlMessage.WorkerId == _id)
-                    {
-                        _isActive = controlMessage.Activate;
-                        Console.WriteLine($"Worker {_id} {(controlMessage.Activate ? "activated" : "deactivated")}.");
-                    }
-
+                    _isActive = controlMessage.Activate;
+                    Console.WriteLine($"Worker {_id} {(controlMessage.Activate ? "activated" : "deactivated")}.");
+                    var activationResponseMessage = new StatusUpdateResponseMessage(_id, _isActive);
+                    await _responseChannelWriter.WriteAsync(MessageJsonSerializer.Serialize(activationResponseMessage));
                     break;
                 }
                 case DataMessage dataMessage when _isActive:
@@ -63,7 +59,7 @@ public class Worker
 
                     // Send a response back to the coordinator
                     var responseMessage = new ResponseMessage { WorkerId = _id, Response = $"Processed: {dataMessage.Data}" };
-                    await _responseChannelWriter.WriteAsync(JsonSerializer.Serialize(responseMessage, _jsonOptions));
+                    await _responseChannelWriter.WriteAsync(MessageJsonSerializer.Serialize(responseMessage));
                     break;
                 }
             }

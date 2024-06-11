@@ -4,12 +4,8 @@ using TemperatureControlNetwork.Core;
 
 namespace Test;
 
-public class MessageJsonConverterTests
+public class MessageJsonSerializerTests
 {
-    private readonly JsonSerializerOptions _jsonOptions = new()
-    {
-        Converters = { new MessageJsonConverter() }
-    };
 
     [Fact]
     public void ShouldSerializeAndDeserializeDataMessage()
@@ -18,8 +14,8 @@ public class MessageJsonConverterTests
         var originalMessage = new DataMessage("Test Data");
 
         // Act
-        string json = JsonSerializer.Serialize(originalMessage, _jsonOptions);
-        var deserializedMessage = JsonSerializer.Deserialize<Message>(json, _jsonOptions);
+        string json = MessageJsonSerializer.Serialize(originalMessage);
+        var deserializedMessage = MessageJsonSerializer.Deserialize<Message>(json);
 
         // Assert
         deserializedMessage.Should().BeOfType<DataMessage>();
@@ -37,8 +33,8 @@ public class MessageJsonConverterTests
         };
 
         // Act
-        string json = JsonSerializer.Serialize(originalMessage, _jsonOptions);
-        var deserializedMessage = JsonSerializer.Deserialize<Message>(json, _jsonOptions);
+        string json = MessageJsonSerializer.Serialize(originalMessage);
+        var deserializedMessage = MessageJsonSerializer.Deserialize<Message>(json);
 
         // Assert
         deserializedMessage.Should().BeOfType<ControlMessage>();
@@ -50,16 +46,16 @@ public class MessageJsonConverterTests
     public void ShouldSerializeAndDeserializeActivationResponseMessage()
     {
         // Arrange
-        var originalMessage = new ActivationResponseMessage(1, true);
+        var originalMessage = new StatusUpdateResponseMessage(1, true);
 
         // Act
-        string json = JsonSerializer.Serialize(originalMessage, _jsonOptions);
-        var deserializedMessage = JsonSerializer.Deserialize<Message>(json, _jsonOptions);
+        string json = MessageJsonSerializer.Serialize(originalMessage);
+        var deserializedMessage = MessageJsonSerializer.Deserialize<Message>(json);
 
         // Assert
-        deserializedMessage.Should().BeOfType<ActivationResponseMessage>();
-        deserializedMessage.As<ActivationResponseMessage>().WorkerId.Should().Be(1);
-        deserializedMessage.As<ActivationResponseMessage>().Success.Should().BeTrue();
+        deserializedMessage.Should().BeOfType<StatusUpdateResponseMessage>();
+        deserializedMessage.As<StatusUpdateResponseMessage>().WorkerId.Should().Be(1);
+        deserializedMessage.As<StatusUpdateResponseMessage>().Active.Should().BeTrue();
     }
 
     [Fact]
@@ -69,7 +65,7 @@ public class MessageJsonConverterTests
         string json = "{\"Type\":\"Unknown\",\"Data\":\"Test Data\"}";
 
         // Act
-        Action act = () => JsonSerializer.Deserialize<Message>(json, _jsonOptions);
+        Action act = () => MessageJsonSerializer.Deserialize<Message>(json);
 
         // Assert
         act.Should().Throw<JsonException>();
