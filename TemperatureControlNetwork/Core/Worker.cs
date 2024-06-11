@@ -41,7 +41,7 @@ public class Worker
                 await Task.Delay(500);
                 Console.WriteLine($"Worker {_id} processed: {dataMessage.Data}");
 
-                var responseMessage = new ResponseMessage(_id, $"Processed: {dataMessage.Data}");
+                var responseMessage = new ResponseMessage { WorkerId = _id, Response = $"Processed: {dataMessage.Data}" };
                 await _responseChannelWriter.WriteAsync(JsonSerializer.Serialize(responseMessage, _jsonOptions));
             }
         }
