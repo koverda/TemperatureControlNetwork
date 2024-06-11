@@ -11,15 +11,15 @@ public abstract class Message
     public abstract MessageType Type { get; }
 }
 
-public class DataMessage : Message
+public class DataMessage(string data) : Message
 {
     public override MessageType Type => MessageType.Data;
-    public string Data { get; set; }
+    public string Data { get; init; } = data;
 }
 
 public class ControlMessage : Message
 {
     public override MessageType Type => MessageType.Control;
-    public int WorkerId { get; set; }
-    public bool Activate { get; set; }
+    public int WorkerId { get; init; }
+    public bool Activate { get; init; }
 }
