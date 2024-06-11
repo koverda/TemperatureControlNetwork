@@ -7,7 +7,6 @@ public static class MessageJsonSerializer
     private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
     {
         Converters = { new MessageJsonConverter() },
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         WriteIndented = true
     };
 
