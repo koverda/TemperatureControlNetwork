@@ -6,14 +6,18 @@ namespace TemperatureControlNetwork.Core;
 public class Worker
 {
     private readonly ChannelReader<string> _channelReader;
-    private readonly ChannelWriter<string> _responseChannelWriter;
     private readonly int _id;
     private readonly JsonSerializerOptions _jsonOptions;
+    private readonly ChannelWriter<string> _responseChannelWriter;
     private bool _isActive;
     private int _messagesProcessed;
-    public List<(int Id, bool IsActive)> NeighborWorkerStatuses { get; set; }
+    private List<WorkerStatus> neighborStatusList;
 
-    public Worker(ChannelReader<string> channelReader, ChannelWriter<string> responseChannelWriter, int id, JsonSerializerOptions jsonOptions)
+    public Worker(
+        ChannelReader<string> channelReader
+        , ChannelWriter<string> responseChannelWriter
+        , int id, JsonSerializerOptions jsonOptions
+    )
     {
         _channelReader = channelReader;
         _responseChannelWriter = responseChannelWriter;
@@ -23,9 +27,10 @@ public class Worker
         _isActive = true; // Workers start as active
     }
 
+
     public async Task StartAsync()
     {
-        await foreach (var item in _channelReader.ReadAllAsync())
+        await foreach (string item in _channelReader.ReadAllAsync())
         {
             var message = JsonSerializer.Deserialize<Message>(item, _jsonOptions);
 

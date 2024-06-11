@@ -11,6 +11,7 @@ public class Coordinator
     private readonly int _numberOfWorkers;
     private readonly Random _random;
     private readonly List<Worker> _workers;
+    private List<WorkerStatus> _workerStatusList;
 
     private readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
     {
@@ -24,6 +25,7 @@ public class Coordinator
         _responseChannel = Channel.CreateUnbounded<string>();
         _workerChannels = new List<Channel<string>>();
         _cancellationToken = cancellationToken;
+        _workerStatusList = new List<WorkerStatus>();
         _random = new Random();
 
         for (int i = 0; i < _numberOfWorkers; i++)
@@ -31,6 +33,7 @@ public class Coordinator
             var workerChannel = Channel.CreateUnbounded<string>();
             _workerChannels.Add(workerChannel);
             _workers.Add(new Worker(workerChannel.Reader, _responseChannel.Writer, i, _jsonOptions));
+            _workerStatusList.Add(new WorkerStatus(i, true)); // all start as active
         }
     }
 
@@ -57,7 +60,7 @@ public class Coordinator
                 await workerChannel.Writer.WriteAsync(dataMessageJson);
             }
 
-            await Task.Delay(1); // Simulate a delay between sending data
+            await Task.Delay(3000); // Simulate a delay between sending data
 
             // Randomly activate or deactivate workers
             if (_random.Next(0, 2) == 0)

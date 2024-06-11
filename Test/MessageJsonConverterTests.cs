@@ -48,6 +48,22 @@ public class MessageJsonConverterTests
     }
 
     [Fact]
+    public void ShouldSerializeAndDeserializeActivationResponseMessage()
+    {
+        // Arrange
+        var originalMessage = new ActivationResponseMessage(1, true);
+
+        // Act
+        string json = JsonSerializer.Serialize(originalMessage, _jsonOptions);
+        var deserializedMessage = JsonSerializer.Deserialize<Message>(json, _jsonOptions);
+
+        // Assert
+        deserializedMessage.Should().BeOfType<ActivationResponseMessage>();
+        deserializedMessage.As<ActivationResponseMessage>().WorkerId.Should().Be(1);
+        deserializedMessage.As<ActivationResponseMessage>().Success.Should().BeTrue();
+    }
+
+    [Fact]
     public void ShouldThrowExceptionForUnknownMessageType()
     {
         // Arrange

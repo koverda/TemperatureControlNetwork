@@ -4,7 +4,8 @@ public enum MessageType
 {
     Data,
     Control,
-    Response
+    Response,
+    ActivationResponseMessage
 }
 
 public abstract class Message
@@ -38,4 +39,21 @@ public class ResponseMessage(string response) : Message
     public override MessageType Type => MessageType.Response;
     public int WorkerId { get; set; }
     public string Response { get; set; } = response;
+}
+
+public class ActivationResponseMessage(int workerId, bool success) : Message
+{
+    public override MessageType Type => MessageType.ActivationResponseMessage;
+    public int WorkerId { get; set; } = workerId;
+    public bool Success { get; set; } = success;
+}
+
+public class NeighborUpdateMessage(string data) : Message
+{
+    public NeighborUpdateMessage() : this("")
+    {
+    }
+
+    public override MessageType Type => MessageType.Data;
+    public string Data { get; init; } = data;
 }
