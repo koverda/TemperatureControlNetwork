@@ -18,6 +18,8 @@ public class MessageJsonConverter : JsonConverter<Message>
                 return JsonSerializer.Deserialize<DataMessage>(doc.RootElement.GetRawText(), options);
             case MessageType.Control:
                 return JsonSerializer.Deserialize<ControlMessage>(doc.RootElement.GetRawText(), options);
+            case MessageType.Response:
+                return JsonSerializer.Deserialize<ResponseMessage>(doc.RootElement.GetRawText(), options);
             default:
                 throw new JsonException($"Unknown message type: {type}");
         }
