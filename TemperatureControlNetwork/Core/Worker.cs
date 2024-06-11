@@ -10,6 +10,8 @@ public class Worker
     private readonly int _id;
     private readonly JsonSerializerOptions _jsonOptions;
     private bool _isActive;
+    private int _messagesProcessed;
+    public List<(int Id, bool IsActive)> NeighborWorkerStatuses { get; set; }
 
     public Worker(ChannelReader<string> channelReader, ChannelWriter<string> responseChannelWriter, int id, JsonSerializerOptions jsonOptions)
     {
@@ -17,6 +19,7 @@ public class Worker
         _responseChannelWriter = responseChannelWriter;
         _id = id;
         _jsonOptions = jsonOptions;
+        _messagesProcessed = 0;
         _isActive = true; // Workers start as active
     }
 
@@ -26,23 +29,30 @@ public class Worker
         {
             var message = JsonSerializer.Deserialize<Message>(item, _jsonOptions);
 
-            if (message is ControlMessage controlMessage)
-            {
-                if (controlMessage.WorkerId == _id)
-                {
-                    _isActive = controlMessage.Activate;
-                    Console.WriteLine($"Worker {_id} {(controlMessage.Activate ? "activated" : "deactivated")}.");
-                }
-            }
-            else if (message is DataMessage dataMessage && _isActive)
-            {
-                Console.WriteLine($"Worker {_id} received: {dataMessage.Data}");
-                // Simulate processing
-                await Task.Delay(500);
-                Console.WriteLine($"Worker {_id} processed: {dataMessage.Data}");
+            _messagesProcessed++;
 
-                var responseMessage = new ResponseMessage { WorkerId = _id, Response = $"Processed: {dataMessage.Data}" };
-                await _responseChannelWriter.WriteAsync(JsonSerializer.Serialize(responseMessage, _jsonOptions));
+            switch (message)
+            {
+                case ControlMessage controlMessage:
+                {
+                    if (controlMessage.WorkerId == _id)
+                    {
+                        _isActive = controlMessage.Activate;
+                        Console.WriteLine($"Worker {_id} {(controlMessage.Activate ? "activated" : "deactivated")}.");
+                    }
+
+                    break;
+                }
+                case DataMessage dataMessage when _isActive:
+                {
+                    Console.WriteLine($"Worker {_id} received: {dataMessage.Data}");
+                    Console.WriteLine($"Worker {_id} processed #{_messagesProcessed}: {dataMessage.Data}");
+
+                    // Send a response back to the coordinator
+                    var responseMessage = new ResponseMessage { WorkerId = _id, Response = $"Processed: {dataMessage.Data}" };
+                    await _responseChannelWriter.WriteAsync(JsonSerializer.Serialize(responseMessage, _jsonOptions));
+                    break;
+                }
             }
         }
     }
