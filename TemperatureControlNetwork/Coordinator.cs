@@ -28,7 +28,7 @@ public class Coordinator
 
         while (!_cancellationToken.IsCancellationRequested)
         {
-            string dataMessage = JsonSerializer.Serialize(new DataMessage { Data = GenerateRandomData() });
+            string dataMessage = JsonSerializer.Serialize(new DataMessage(GenerateRandomData()));
             await _channel.Writer.WriteAsync(dataMessage, _cancellationToken);
 
             await Task.Delay(1000, _cancellationToken);
