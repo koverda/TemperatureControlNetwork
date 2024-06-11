@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System;
+using System.Text.Json;
 using System.Threading.Channels;
 
 namespace TemperatureControlNetwork.Core;
@@ -12,6 +13,12 @@ public class Worker
     private bool _isActive;
     private int _messagesProcessed;
     private List<WorkerStatus> _neighborStatusList = [];
+
+    private double _temperature = 20.0;
+    private readonly double _minTemperature = 10.0;
+    private readonly double _maxTemperature = 30.0;
+    private readonly double _adjustmentStep = 0.5;
+    private readonly Random _random = new Random();
 
     public Worker(
         ChannelReader<string> channelReader
@@ -30,6 +37,8 @@ public class Worker
 
     public async Task StartAsync()
     {
+        UpdateTemperatureLoopAsync();
+
         await foreach (string item in _channelReader.ReadAllAsync())
         {
             var message = JsonSerializer.Deserialize<Message>(item, _jsonOptions);
@@ -59,6 +68,37 @@ public class Worker
                     break;
                 }
             }
+        }
+    }
+
+
+    private async Task UpdateTemperatureLoopAsync()
+    {
+        while (true)
+        {
+            double adjustmentStep = _random.NextDouble() * 0.5; // Random adjustment step between 0 and 0.5
+
+            if (_isActive)
+            {
+                var activeNeighbors = _neighborStatusList.Count(w => w.Active);
+                var averageActive = _neighborStatusList.Count / 2.0;
+
+                if (activeNeighbors > averageActive)
+                {
+                    _temperature = Math.Min(_temperature + adjustmentStep, _maxTemperature);
+                }
+                else
+                {
+                    _temperature = Math.Max(_temperature - adjustmentStep, _minTemperature);
+                }
+            }
+            else
+            {
+                _temperature = Math.Max(_temperature - adjustmentStep, _minTemperature);
+            }
+
+            Console.WriteLine($"Worker {_id} temperature: {_temperature}°C");
+            await Task.Delay(1000); // Update temperature every second
         }
     }
 }
