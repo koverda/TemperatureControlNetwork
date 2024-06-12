@@ -13,8 +13,8 @@ public class Coordinator
 
     private readonly List<Channel<string>> _workerChannels = [];
     private readonly List<Worker> _workers = [];
-    private List<WorkerStatus> _workerStatusList = [];
-    private WorkerTemperatureList _workerTemperatureList = new([]);
+    private readonly List<WorkerStatus> _workerStatusList = [];
+    private readonly WorkerTemperatureList _workerTemperatureList = new([]);
 
 
     public Coordinator(CancellationToken cancellationToken)
@@ -24,13 +24,13 @@ public class Coordinator
         _cancellationToken = cancellationToken;
         _random = new Random();
 
-        for (int i = 0; i < _numberOfWorkers; i++)
+        for (int workerId = 0; workerId < _numberOfWorkers; workerId++)
         {
             var workerChannel = Channel.CreateUnbounded<string>();
             _workerChannels.Add(workerChannel);
-            _workers.Add(new Worker(workerChannel.Reader, _responseChannel.Writer, i));
-            _workerStatusList.Add(new WorkerStatus(i, true)); // all start as active
-            _workerTemperatureList.WorkerTemperatures.Add(new WorkerTemperature(i, Config.StartingTemperature));
+            _workers.Add(new Worker(workerChannel.Reader, _responseChannel.Writer, workerId));
+            _workerStatusList.Add(new WorkerStatus(workerId, active: true));
+            _workerTemperatureList.WorkerTemperatures.Add(new WorkerTemperature(workerId, Config.StartingTemperature));
         }
     }
 
@@ -43,9 +43,20 @@ public class Coordinator
             workerTasks.Add(worker.StartAsync());
         }
 
-        var processResponsesTask = ProcessResponsesAsync();
+        var processResponsesTask = WatchCoordinatorChannelsAsync();
+        await CoordinatorLoop();
 
-        // Run indefinitely until cancellation is requested
+        foreach (var workerChannel in _workerChannels)
+        {
+            workerChannel.Writer.Complete();
+        }
+
+        await Task.WhenAll(workerTasks);
+        await processResponsesTask;
+    }
+
+    private async Task CoordinatorLoop()
+    {
         while (!_cancellationToken.IsCancellationRequested)
         {
             var dataMessage = new DataMessage { Data = "Data request from coordinator" };
@@ -72,39 +83,45 @@ public class Coordinator
                 await _workerChannels[workerId].Writer.WriteAsync(controlMessageJson, _cancellationToken);
             }
         }
-
-        foreach (var workerChannel in _workerChannels)
-        {
-            workerChannel.Writer.Complete();
-        }
-
-        await Task.WhenAll(workerTasks);
-        await processResponsesTask;
     }
 
-    private async Task ProcessResponsesAsync()
+    private async Task WatchCoordinatorChannelsAsync()
     {
         await foreach (var item in _responseChannel.Reader.ReadAllAsync(_cancellationToken))
         {
             var message = MessageJsonSerializer.Deserialize<Message>(item);
 
-            if (message is DataResponseMessage responseMessage)
+            switch (message)
             {
-                Console.WriteLine($"Coordinator received response from Worker {responseMessage.WorkerId}: {responseMessage.Temperature}");
-            }
-
-            // Workers activated / deactivated successfully
-            if (message is StatusUpdateResponseMessage activationResponseMessage)
-            {
-                _workerStatusList.First(w => w.Id == activationResponseMessage.WorkerId).Active = activationResponseMessage.Active;
-
-                var workerStatusUpdateMessage = new StatusUpdateMessage(_workerStatusList);
-                // Send data to all active workers
-                foreach (var workerChannel in _workerChannels)
+                case DataResponseMessage responseMessage:
                 {
-                    await workerChannel.Writer.WriteAsync(JsonSerializer.Serialize(workerStatusUpdateMessage), _cancellationToken);
+                    Console.WriteLine($"Coordinator received response from Worker {responseMessage.WorkerId}: {responseMessage.Temperature:##.#}");
+                }
+                    break;
+                case StatusUpdateResponseMessage activationResponseMessage:
+                {
+                    _workerStatusList.First(w => w.Id == activationResponseMessage.WorkerId).Active = activationResponseMessage.Active;
+
+                    var workerStatusUpdateMessage = new StatusUpdateMessage(_workerStatusList);
+                    foreach (var workerChannel in _workerChannels)
+                    {
+                        await workerChannel.Writer.WriteAsync(JsonSerializer.Serialize(workerStatusUpdateMessage), _cancellationToken);
+                    }
+
+                    break;
                 }
             }
         }
+    }
+
+
+    private async Task WorkerLoopAsync()
+    {
+        while (true)
+        {
+        }
+
+        // This is the worker's main loop, we want it to run indefinitely and there's nothing to return
+        // ReSharper disable once FunctionNeverReturns
     }
 }

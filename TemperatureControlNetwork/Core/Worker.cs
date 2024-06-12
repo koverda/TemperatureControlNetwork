@@ -33,11 +33,28 @@ public class Worker
 
     public async Task StartAsync()
     {
-        // this is the worker's loop, we want it to run continuously and not await completion
-#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
-        UpdateTemperatureLoopAsync();
-#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
+        _ = WorkerLoopAsync();
+        await ProcessChannelMessages();
+    }
 
+    private async Task WorkerLoopAsync()
+    {
+        while (true)
+        {
+            double adjustmentStep = _random.NextDouble() * Config.MaxAdjustment;
+
+            // heat up if active, else cool down
+            _temperature = _isActive
+                ? Math.Min(_temperature + adjustmentStep, _maxTemperature)
+                : Math.Max(_temperature - adjustmentStep / 2, _minTemperature); // cools down slower
+
+            Console.WriteLine($"Worker {_id:000}: {(_isActive ? "  active" : "inactive")}: {_temperature:##.#}°C");
+            await Task.Delay(Config.WorkerLoopDelay);
+        }
+    }
+
+    private async Task ProcessChannelMessages()
+    {
         await foreach (string item in _channelReader.ReadAllAsync())
         {
             var message = MessageJsonSerializer.Deserialize<Message>(item);
@@ -69,22 +86,6 @@ public class Worker
                     break;
                 }
             }
-        }
-    }
-
-    private async Task UpdateTemperatureLoopAsync()
-    {
-        while (true)
-        {
-            double adjustmentStep = _random.NextDouble() * Config.MaxAdjustment;
-
-            // heat up if active, else cool down
-            _temperature = _isActive
-                ? Math.Min(_temperature + adjustmentStep, _maxTemperature)
-                : Math.Max(_temperature - adjustmentStep / 2, _minTemperature); // cools down slower
-
-            Console.WriteLine($"Worker {_id:000}: {(_isActive ? "  active" : "inactive")}: {_temperature:##.#}°C");
-            await Task.Delay(Config.WorkerLoopDelay);
         }
     }
 }

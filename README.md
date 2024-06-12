@@ -26,14 +26,13 @@ This project demonstrates a .NET application using channels for concurrent, high
 
 ## To DO
 
-- [ ] Turning workers on and off and updating statuses everywhere
+- [x] Turning workers on and off and updating statuses everywhere
 - [ ] Streaming data
 	- [ ] Maybe workers store higher frequency temperature data and stream it to the coordinator once they run low on space
 	- [ ] Manual way to get all workers to stream their data
 - [ ] Saving data to long term storage
-- [ ] Temperature calculations
-	- [ ] Workers send temp data to coordinator, it keeps an average 
-	- [ ] Workers track how many other workers are on and use that to adjust their temperature readings
+- [x] Temperature calculations
+	- [x] Workers send temp data to coordinator, it keeps an average 
 - [ ] Triggers for turning workers on and off
 	- [ ] If too hot, coordinator turns off a worker
 	- [ ] If too cold, coordinator turns on a worker
