@@ -1,7 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using TemperatureControlNetwork.Core;
 using TemperatureControlNetwork.Data;
-using TemperatureControlNetwork.Data.Interface; // Ensure you have the necessary using directives
+using TemperatureControlNetwork.Data.Interface;
 
 namespace TemperatureControlNetwork;
 
@@ -10,7 +10,7 @@ internal static class Program
     private static async Task Main()
     {
         var cancellationTokenSource = new CancellationTokenSource();
-        Console.CancelKeyPress += (sender, eventArgs) =>
+        Console.CancelKeyPress += (_, eventArgs) =>
         {
             eventArgs.Cancel = true;
             cancellationTokenSource.Cancel();
@@ -29,7 +29,7 @@ internal static class Program
         services
             .AddSingleton<ITemperatureDataStore>(_ =>
             {
-                var filePath = "path/to/file.csv";
+                const string filePath = "path/to/file.csv";
                 return new CsvTemperatureDataStore(filePath);
             })
             // .AddSingleton<ITemperatureDataStore>(_ => new InMemoryTemperatureDataStore()) // can pick either csv or in-memory

@@ -2,8 +2,8 @@
 {
     public class TemperatureData
     {
-        public int WorkerId { get; set; }
-        public DateTime Timestamp { get; set; }
-        public double Temperature { get; set; }
+        public int WorkerId { get; init; }
+        public DateTime Timestamp { get; init; }
+        public double Temperature { get; init; }
     }
 }

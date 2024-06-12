@@ -7,16 +7,13 @@ namespace TemperatureControlNetwork.Core;
 public class Worker
 {
     private readonly ChannelReader<string> _channelReader;
-    private readonly int _id;
-    private readonly double _maxTemperature = Config.MaxTemperature;
-    private readonly double _minTemperature = Config.MinTemperature;
     private readonly Random _random = new();
     private readonly ChannelWriter<string> _responseChannelWriter;
-    private bool _isActive;
-    private int _messagesProcessed;
 
+    private bool _isActive;
     private double _temperature = Config.StartingTemperature;
     private List<WorkerStatus> _workerStatusList = [];
+
 
     public Worker(
         ChannelReader<string> channelReader
@@ -26,12 +23,11 @@ public class Worker
     {
         _channelReader = channelReader;
         _responseChannelWriter = responseChannelWriter;
-        _id = id;
-        _messagesProcessed = 0;
-        _isActive = true; // Workers start as active
+        Id = id;
+        _isActive = true;
     }
 
-    public int Id => _id;
+    public int Id { get; }
 
 
     public async Task StartAsync()
@@ -58,9 +54,9 @@ public class Worker
         if (inactiveWorkers.Length > 0)
         {
             var workerToActivate = inactiveWorkers[_random.Next(inactiveWorkers.Length)];
-            Console.WriteLine($"Worker {_id:000}: has reached max temperature: {_temperature:##.#}°C, needs to deactivate self and activate neighbor: {workerToActivate.Id}");
+            Console.WriteLine($"Worker {Id:000}: has reached max temperature: {_temperature:##.#}°C, needs to deactivate self and activate neighbor: {workerToActivate.Id}");
 
-            var overheatMessage = new OverheatTakeoverMessage(_id, workerToActivate.Id);
+            var overheatMessage = new OverheatTakeoverMessage(Id, workerToActivate.Id);
             await _responseChannelWriter.WriteAsync(MessageJsonSerializer.Serialize(overheatMessage));
         }
     }
@@ -71,37 +67,37 @@ public class Worker
 
         // heat up if active, else cool down
         _temperature = _isActive
-            ? Math.Min(_temperature + adjustmentStep, _maxTemperature)
-            : Math.Max(_temperature - adjustmentStep / 2, _minTemperature); // cools down slower
-        Console.WriteLine($"Worker {_id:000}: {(_isActive ? "  active" : "inactive")}: {_temperature:##.#}°C");
+            ? Math.Min(_temperature + adjustmentStep, Config.MaxTemperature)
+            : Math.Max(_temperature - adjustmentStep / 2, Config.MinTemperature); // cools down slower
+        Console.WriteLine($"Worker {Id:000}: {(_isActive ? "  active" : "inactive")}: {_temperature:##.#}°C");
     }
 
     private async Task ProcessChannelMessages()
     {
         await foreach (string item in _channelReader.ReadAllAsync())
         {
-            var message = MessageJsonSerializer.Deserialize<Message>(item);
+            var message = MessageJsonSerializer.Deserialize<IMessage>(item);
 
             switch (message)
             {
                 case ControlMessage controlMessage:
                 {
                     _isActive = controlMessage.Activate;
-                    Console.WriteLine($"Worker {_id} {(controlMessage.Activate ? "activated" : "deactivated")}.");
-                    var activationResponseMessage = new StatusUpdateResponseMessage(_id, _isActive);
+                    Console.WriteLine($"Worker {Id} {(controlMessage.Activate ? "activated" : "deactivated")}.");
+                    var activationResponseMessage = new StatusUpdateResponseMessage(Id, _isActive);
                     await _responseChannelWriter.WriteAsync(MessageJsonSerializer.Serialize(activationResponseMessage));
                     break;
                 }
                 case DataMessage dataMessage:
                 {
-                    Console.WriteLine($"Worker {_id} received: {dataMessage.Data}");
-                    var responseMessage = new DataResponseMessage(_id, _temperature);
+                    Console.WriteLine($"Worker {Id} received: {dataMessage.Data}");
+                    var responseMessage = new DataResponseMessage(Id, _temperature);
                     await _responseChannelWriter.WriteAsync(MessageJsonSerializer.Serialize(responseMessage));
                     break;
                 }
                 case StatusUpdateMessage statusUpdateMessage:
                 {
-                    Console.WriteLine($"Worker {_id} received statusUpdate");
+                    Console.WriteLine($"Worker {Id} received statusUpdate");
                     _workerStatusList = statusUpdateMessage.WorkerStatusList;
                     break;
                 }
@@ -118,7 +114,7 @@ public class Worker
 
             var data = new TemperatureData
             {
-                WorkerId = _id,
+                WorkerId = Id,
                 Timestamp = DateTime.Now,
                 Temperature = _temperature
             };

@@ -15,7 +15,7 @@ public class MessageJsonSerializerTests
 
         // Act
         string json = MessageJsonSerializer.Serialize(originalMessage);
-        var deserializedMessage = MessageJsonSerializer.Deserialize<Message>(json);
+        var deserializedMessage = MessageJsonSerializer.Deserialize<IMessage>(json);
 
         // Assert
         deserializedMessage.Should().BeOfType<DataMessage>();
@@ -34,7 +34,7 @@ public class MessageJsonSerializerTests
 
         // Act
         string json = MessageJsonSerializer.Serialize(originalMessage);
-        var deserializedMessage = MessageJsonSerializer.Deserialize<Message>(json);
+        var deserializedMessage = MessageJsonSerializer.Deserialize<IMessage>(json);
 
         // Assert
         deserializedMessage.Should().BeOfType<ControlMessage>();
@@ -50,7 +50,7 @@ public class MessageJsonSerializerTests
 
         // Act
         string json = MessageJsonSerializer.Serialize(originalMessage);
-        var deserializedMessage = MessageJsonSerializer.Deserialize<Message>(json);
+        var deserializedMessage = MessageJsonSerializer.Deserialize<IMessage>(json);
 
         // Assert
         deserializedMessage.Should().BeOfType<StatusUpdateResponseMessage>();
@@ -65,7 +65,7 @@ public class MessageJsonSerializerTests
         string json = "{\"Type\":\"Unknown\",\"Data\":\"Test Data\"}";
 
         // Act
-        Action act = () => MessageJsonSerializer.Deserialize<Message>(json);
+        Action act = () => MessageJsonSerializer.Deserialize<IMessage>(json);
 
         // Assert
         act.Should().Throw<JsonException>();

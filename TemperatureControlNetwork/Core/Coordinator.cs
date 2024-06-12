@@ -10,14 +10,11 @@ public class Coordinator
     private readonly CancellationToken _cancellationToken;
     private readonly ITemperatureDataStore _temperatureDataStore;
     private readonly Random _random;
-
     private readonly Channel<string> _responseChannel;
-
     private readonly List<Channel<string>> _workerChannels = [];
     private readonly List<Worker> _workers = [];
     private readonly List<WorkerStatus> _workerStatusList = [];
     private readonly WorkerTemperatureList _workerTemperatureList = new([]);
-
 
     public Coordinator(CancellationToken cancellationToken, ITemperatureDataStore temperatureDataStore)
     {
@@ -174,7 +171,7 @@ public class Coordinator
         {
             await foreach (var item in _responseChannel.Reader.ReadAllAsync(_cancellationToken))
             {
-                var message = MessageJsonSerializer.Deserialize<Message>(item);
+                var message = MessageJsonSerializer.Deserialize<IMessage>(item);
 
                 switch (message)
                 {
@@ -221,6 +218,7 @@ public class Coordinator
         await foreach (var data in worker.GetTemperatureDataStream().WithCancellation(cancellationToken))
         {
             Console.WriteLine($"WorkerId: {data.WorkerId}, Timestamp: {data.Timestamp:O}, Temperature: {data.Temperature:F2}°C");
+            await _temperatureDataStore.AddTemperatureDataAsync(data);
         }
     }
 }

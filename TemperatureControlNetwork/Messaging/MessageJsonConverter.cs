@@ -4,9 +4,9 @@ using System.Text.Json.Serialization;
 namespace TemperatureControlNetwork.Messaging;
 
 // todo can i reduce access modifiers?
-public class MessageJsonConverter : JsonConverter<Message>
+public class MessageJsonConverter : JsonConverter<IMessage>
 {
-    public override Message? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions? options)
+    public override IMessage? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions? options)
     {
         using var doc = JsonDocument.ParseValue(ref reader);
         var raw = doc.RootElement.GetRawText();
@@ -33,7 +33,7 @@ public class MessageJsonConverter : JsonConverter<Message>
         }
     }
 
-    public override void Write(Utf8JsonWriter writer, Message value, JsonSerializerOptions options)
+    public override void Write(Utf8JsonWriter writer, IMessage value, JsonSerializerOptions options)
     {
         JsonSerializer.Serialize(writer, value, value.GetType(), options);
     }
