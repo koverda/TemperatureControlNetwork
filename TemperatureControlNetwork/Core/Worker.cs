@@ -1,9 +1,9 @@
 ﻿using System.Runtime.CompilerServices;
 using System.Threading.Channels;
+using TemperatureControlNetwork.Messaging;
 
 namespace TemperatureControlNetwork.Core;
 
-// todo thin out class
 public class Worker
 {
     private readonly ChannelReader<string> _channelReader;
@@ -44,16 +44,36 @@ public class Worker
     {
         while (true)
         {
-            double adjustmentStep = _random.NextDouble() * Config.MaxAdjustment;
+            RecalculateWorkerTemperature();
 
-            // heat up if active, else cool down
-            _temperature = _isActive
-                ? Math.Min(_temperature + adjustmentStep, _maxTemperature)
-                : Math.Max(_temperature - adjustmentStep / 2, _minTemperature); // cools down slower
+            if (_temperature >= Config.MaxTemperature) await HandleOverheat();
 
-            Console.WriteLine($"Worker {_id:000}: {(_isActive ? "  active" : "inactive")}: {_temperature:##.#}°C");
             await Task.Delay(Config.WorkerLoopDelay);
         }
+    }
+
+    private async Task HandleOverheat()
+    {
+        var inactiveWorkers = _workerStatusList.Where(w => !w.Active).ToArray();
+        if (inactiveWorkers.Length > 0)
+        {
+            var workerToActivate = inactiveWorkers[_random.Next(inactiveWorkers.Length)];
+            Console.WriteLine($"Worker {_id:000}: has reached max temperature: {_temperature:##.#}°C, deactivating self and activating neighbor {workerToActivate}");
+
+            var overheatMessage = new OverheatTakeoverMessage(workerToActivate.Id);
+            await _responseChannelWriter.WriteAsync(MessageJsonSerializer.Serialize(overheatMessage));
+        }
+    }
+
+    private void RecalculateWorkerTemperature()
+    {
+        double adjustmentStep = _random.NextDouble() * Config.MaxAdjustment;
+
+        // heat up if active, else cool down
+        _temperature = _isActive
+            ? Math.Min(_temperature + adjustmentStep, _maxTemperature)
+            : Math.Max(_temperature - adjustmentStep / 2, _minTemperature); // cools down slower
+        Console.WriteLine($"Worker {_id:000}: {(_isActive ? "  active" : "inactive")}: {_temperature:##.#}°C");
     }
 
     private async Task ProcessChannelMessages()

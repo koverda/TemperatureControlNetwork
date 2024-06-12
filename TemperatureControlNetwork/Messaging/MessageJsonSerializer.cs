@@ -1,6 +1,6 @@
 ﻿using System.Text.Json;
 
-namespace TemperatureControlNetwork.Core;
+namespace TemperatureControlNetwork.Messaging;
 
 public static class MessageJsonSerializer
 {

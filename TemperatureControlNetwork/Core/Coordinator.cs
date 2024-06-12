@@ -1,7 +1,9 @@
-﻿using System.Text.Json;
+﻿using System;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Channels;
 using TemperatureControlNetwork.Data.Interface;
+using TemperatureControlNetwork.Messaging;
 
 namespace TemperatureControlNetwork.Core;
 
@@ -109,17 +111,9 @@ public class Coordinator
                 // toggle random workers to destabilize system
                 if (_random.Next(0, 2) == 0)
                 {
+                    var activate = _random.Next(0, 2) == 0;
                     int workerId = _random.Next(0, Config.NumberOfWorkers);
-                    var controlMessage = new ControlMessage
-                    {
-                        WorkerId = workerId,
-                        Activate = _random.Next(0, 2) == 0
-                    };
-                    string controlMessageJson = MessageJsonSerializer.Serialize(controlMessage);
-                    if (_workerChannels[workerId].Writer.TryWrite(controlMessageJson) == false)
-                    {
-                        await _workerChannels[workerId].Writer.WriteAsync(controlMessageJson, _cancellationToken);
-                    }
+                    await ActivateWorker(workerId, activate);
                 }
 
                 await Task.Delay(Config.CoordinatorLoopDelay, _cancellationToken);
@@ -132,6 +126,20 @@ public class Coordinator
         finally
         {
             await HandleShutdownAsync(workerTasks, processResponsesTask);
+        }
+    }
+
+    private async Task ActivateWorker(int workerId, bool activate)
+    {
+        var controlMessage = new ControlMessage
+        {
+            WorkerId = workerId,
+            Activate = activate
+        };
+        string controlMessageJson = MessageJsonSerializer.Serialize(controlMessage);
+        if (_workerChannels[workerId].Writer.TryWrite(controlMessageJson) == false)
+        {
+            await _workerChannels[workerId].Writer.WriteAsync(controlMessageJson, _cancellationToken);
         }
     }
 
@@ -189,17 +197,20 @@ public class Coordinator
 
                         break;
                     }
+                    case OverheatTakeoverMessage overheatTakeoverMessage:
+                    {
+                        await ActivateWorker(overheatTakeoverMessage.WorkerToActivate, true);
+                        break;
+                    }
                 }
             }
         }
         catch (OperationCanceledException)
         {
-            // Handle the cancellation gracefully here
             Console.WriteLine("ReadCoordinatorChannelAsync canceled.");
         }
         finally
         {
-            // Perform any necessary cleanup here
             Console.WriteLine("ReadCoordinatorChannelAsync finished.");
         }
     }

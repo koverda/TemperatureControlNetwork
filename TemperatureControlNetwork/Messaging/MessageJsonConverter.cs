@@ -1,7 +1,7 @@
 ﻿using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace TemperatureControlNetwork.Core;
+namespace TemperatureControlNetwork.Messaging;
 
 // todo can i reduce access modifiers?
 public class MessageJsonConverter : JsonConverter<Message>
@@ -26,6 +26,8 @@ public class MessageJsonConverter : JsonConverter<Message>
                 return JsonSerializer.Deserialize<StatusUpdateResponseMessage>(doc.RootElement.GetRawText(), options);
             case MessageType.StatusUpdate:
                 return JsonSerializer.Deserialize<StatusUpdateMessage>(doc.RootElement.GetRawText(), options);
+            case MessageType.OverheatTakeover:
+                return JsonSerializer.Deserialize<OverheatTakeoverMessage>(doc.RootElement.GetRawText(), options);
             default:
                 throw new JsonException($"Unknown message type: {type}");
         }

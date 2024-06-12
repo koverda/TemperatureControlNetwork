@@ -1,4 +1,6 @@
-﻿namespace TemperatureControlNetwork.Core;
+﻿using TemperatureControlNetwork.Core;
+
+namespace TemperatureControlNetwork.Messaging;
 
 public enum MessageType
 {
@@ -6,7 +8,8 @@ public enum MessageType
     Control,
     Response,
     StatusUpdateResponse,
-    StatusUpdate
+    StatusUpdate,
+    OverheatTakeover
 }
 
 public abstract class Message
@@ -49,4 +52,10 @@ public class StatusUpdateMessage(List<WorkerStatus> workerStatusList) : Message
 {
     public override MessageType Type => MessageType.StatusUpdate;
     public List<WorkerStatus> WorkerStatusList { get; init; } = workerStatusList;
+}
+
+public class OverheatTakeoverMessage(int workerToActivate) : Message
+{
+    public override MessageType Type => MessageType.OverheatTakeover;
+    public int WorkerToActivate { get; set; } = workerToActivate;
 }
