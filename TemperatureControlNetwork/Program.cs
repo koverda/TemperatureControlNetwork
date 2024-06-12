@@ -6,10 +6,7 @@ internal static class Program
 {
     private static async Task Main()
     {
-        int numberOfWorkers = 3;
-        var cancellationTokenSource = new CancellationTokenSource();
-
-        var coordinator = new Coordinator(numberOfWorkers, cancellationTokenSource.Token);
+        var coordinator = new Coordinator(new CancellationTokenSource().Token);
         await coordinator.StartAsync();
     }
 }

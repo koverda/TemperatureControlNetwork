@@ -4,7 +4,7 @@ namespace TemperatureControlNetwork.Core;
 
 public static class MessageJsonSerializer
 {
-    private static readonly JsonSerializerOptions _jsonOptions = new JsonSerializerOptions
+    private static readonly JsonSerializerOptions _jsonOptions = new()
     {
         Converters = { new MessageJsonConverter() },
         WriteIndented = true
@@ -17,6 +17,6 @@ public static class MessageJsonSerializer
 
     public static T Deserialize<T>(string json)
     {
-        return JsonSerializer.Deserialize<T>(json, _jsonOptions);
+        return JsonSerializer.Deserialize<T>(json, _jsonOptions) ?? throw new JsonException($"Could not deserialize json: {json}");
     }
 }
