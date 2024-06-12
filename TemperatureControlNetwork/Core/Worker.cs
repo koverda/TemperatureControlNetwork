@@ -10,12 +10,12 @@ public class Worker
     private readonly ChannelWriter<string> _responseChannelWriter;
     private bool _isActive;
     private int _messagesProcessed;
-    private List<WorkerStatus> _neighborStatusList = [];
+    private List<WorkerStatus> _workerStatusList = [];
 
-    private double _temperature = 20.0;
-    private readonly double _minTemperature = 10.0;
-    private readonly double _maxTemperature = 30.0;
-    private readonly Random _random = new Random();
+    private double _temperature = Config.StartingTemperature;
+    private readonly double _minTemperature = Config.MinTemperature;
+    private readonly double _maxTemperature = Config.MaxTemperature;
+    private readonly Random _random = new();
 
     public Worker(
         ChannelReader<string> channelReader
@@ -33,13 +33,17 @@ public class Worker
 
     public async Task StartAsync()
     {
+        // this is the worker's loop, we want it to run continuously and not await completion
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
         UpdateTemperatureLoopAsync();
+#pragma warning restore CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 
         await foreach (string item in _channelReader.ReadAllAsync())
         {
             var message = MessageJsonSerializer.Deserialize<Message>(item);
 
             _messagesProcessed++;
+            Console.WriteLine($"Worker {_id} processed #{_messagesProcessed}");
 
             switch (message)
             {
@@ -51,14 +55,17 @@ public class Worker
                     await _responseChannelWriter.WriteAsync(MessageJsonSerializer.Serialize(activationResponseMessage));
                     break;
                 }
-                case DataMessage dataMessage when _isActive:
+                case DataMessage dataMessage:
                 {
                     Console.WriteLine($"Worker {_id} received: {dataMessage.Data}");
-                    Console.WriteLine($"Worker {_id} processed #{_messagesProcessed}: {dataMessage.Data}");
-
-                    // Send a response back to the coordinator
-                    var responseMessage = new ResponseMessage { WorkerId = _id, Response = $"Processed: {dataMessage.Data}" };
+                    var responseMessage = new DataResponseMessage(workerId: _id, temperature: _temperature);
                     await _responseChannelWriter.WriteAsync(MessageJsonSerializer.Serialize(responseMessage));
+                    break;
+                }
+                case StatusUpdateMessage statusUpdateMessage:
+                {
+                    Console.WriteLine($"Worker {_id} received statusUpdate");
+                    _workerStatusList = statusUpdateMessage.WorkerStatusList;
                     break;
                 }
             }
@@ -69,30 +76,15 @@ public class Worker
     {
         while (true)
         {
-            double adjustmentStep = _random.NextDouble() * 0.5; // Random adjustment step between 0 and 0.5
+            double adjustmentStep = _random.NextDouble() * Config.MaxAdjustment;
 
-            if (_isActive)
-            {
-                var activeNeighbors = _neighborStatusList.Count(w => w.Active);
-                var averageActive = _neighborStatusList.Count / 2.0;
+            // heat up if active, else cool down
+            _temperature = _isActive
+                ? Math.Min(_temperature + adjustmentStep, _maxTemperature)
+                : Math.Max(_temperature - adjustmentStep / 2, _minTemperature); // cools down slower
 
-                if (activeNeighbors > averageActive)
-                {
-                    _temperature = Math.Min(_temperature + adjustmentStep, _maxTemperature);
-                }
-                else
-                {
-                    _temperature = Math.Max(_temperature - adjustmentStep, _minTemperature);
-                }
-
-                Console.WriteLine($"Worker {_id} temperature: {_temperature:##.#}°C");
-            }
-            else
-            {
-                Console.WriteLine($"Worker {_id} is inactive");
-            }
-
-            await Task.Delay(1000); // Update temperature every second
+            Console.WriteLine($"Worker {_id:000}: {(_isActive ? "  active" : "inactive")}: {_temperature:##.#}°C");
+            await Task.Delay(Config.WorkerLoopDelay);
         }
     }
 }

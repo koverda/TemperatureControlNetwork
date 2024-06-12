@@ -14,11 +14,12 @@ public class Coordinator
     private readonly List<Channel<string>> _workerChannels = [];
     private readonly List<Worker> _workers = [];
     private List<WorkerStatus> _workerStatusList = [];
+    private WorkerTemperatureList _workerTemperatureList = new([]);
 
 
-    public Coordinator(int numberOfWorkers, CancellationToken cancellationToken)
+    public Coordinator(CancellationToken cancellationToken)
     {
-        _numberOfWorkers = numberOfWorkers;
+        _numberOfWorkers = Config.NumberOfWorkers;
         _responseChannel = Channel.CreateUnbounded<string>();
         _cancellationToken = cancellationToken;
         _random = new Random();
@@ -29,6 +30,7 @@ public class Coordinator
             _workerChannels.Add(workerChannel);
             _workers.Add(new Worker(workerChannel.Reader, _responseChannel.Writer, i));
             _workerStatusList.Add(new WorkerStatus(i, true)); // all start as active
+            _workerTemperatureList.WorkerTemperatures.Add(new WorkerTemperature(i, Config.StartingTemperature));
         }
     }
 
@@ -46,16 +48,16 @@ public class Coordinator
         // Run indefinitely until cancellation is requested
         while (!_cancellationToken.IsCancellationRequested)
         {
-            var dataMessage = new DataMessage { Data = GenerateRandomData() };
+            var dataMessage = new DataMessage { Data = "Data request from coordinator" };
             var dataMessageJson = MessageJsonSerializer.Serialize(dataMessage);
 
             // Send data to all active workers
             foreach (var workerChannel in _workerChannels)
             {
-                await workerChannel.Writer.WriteAsync(dataMessageJson);
+                await workerChannel.Writer.WriteAsync(dataMessageJson, _cancellationToken);
             }
 
-            await Task.Delay(3000); // Simulate a delay between sending data
+            await Task.Delay(Config.CoordinatorLoopDelay, _cancellationToken);
 
             // Randomly activate or deactivate workers
             if (_random.Next(0, 2) == 0)
@@ -67,7 +69,7 @@ public class Coordinator
                     Activate = _random.Next(0, 2) == 0
                 };
                 string controlMessageJson = MessageJsonSerializer.Serialize(controlMessage);
-                await _workerChannels[workerId].Writer.WriteAsync(controlMessageJson);
+                await _workerChannels[workerId].Writer.WriteAsync(controlMessageJson, _cancellationToken);
             }
         }
 
@@ -82,13 +84,13 @@ public class Coordinator
 
     private async Task ProcessResponsesAsync()
     {
-        await foreach (var item in _responseChannel.Reader.ReadAllAsync())
+        await foreach (var item in _responseChannel.Reader.ReadAllAsync(_cancellationToken))
         {
             var message = MessageJsonSerializer.Deserialize<Message>(item);
 
-            if (message is ResponseMessage responseMessage)
+            if (message is DataResponseMessage responseMessage)
             {
-                Console.WriteLine($"Coordinator received response from Worker {responseMessage.WorkerId}: {responseMessage.Response}");
+                Console.WriteLine($"Coordinator received response from Worker {responseMessage.WorkerId}: {responseMessage.Temperature}");
             }
 
             // Workers activated / deactivated successfully
@@ -100,16 +102,9 @@ public class Coordinator
                 // Send data to all active workers
                 foreach (var workerChannel in _workerChannels)
                 {
-                    await workerChannel.Writer.WriteAsync(JsonSerializer.Serialize(workerStatusUpdateMessage));
+                    await workerChannel.Writer.WriteAsync(JsonSerializer.Serialize(workerStatusUpdateMessage), _cancellationToken);
                 }
             }
         }
-    }
-
-    private string GenerateRandomData()
-    {
-        return _random.Next(0, 2) == 0
-            ? $"Temperature: {_random.Next(15, 30)}°C"
-            : "Message: Hello from Coordinator!";
     }
 }

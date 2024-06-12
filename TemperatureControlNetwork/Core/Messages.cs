@@ -31,15 +31,11 @@ public class ControlMessage : Message
     public bool Activate { get; init; }
 }
 
-public class ResponseMessage(string response) : Message
+public class DataResponseMessage(int workerId, double temperature) : Message
 {
-    public ResponseMessage() : this("")
-    {
-    }
-
     public override MessageType Type => MessageType.Response;
-    public int WorkerId { get; set; }
-    public string Response { get; set; } = response;
+    public int WorkerId { get; set; } = workerId;
+    public double Temperature { get; set; } = temperature;
 }
 
 public class StatusUpdateResponseMessage(int workerId, bool active) : Message

@@ -21,7 +21,7 @@ public class MessageJsonConverter : JsonConverter<Message>
             case MessageType.Control:
                 return JsonSerializer.Deserialize<ControlMessage>(doc.RootElement.GetRawText(), options);
             case MessageType.Response:
-                return JsonSerializer.Deserialize<ResponseMessage>(doc.RootElement.GetRawText(), options);
+                return JsonSerializer.Deserialize<DataResponseMessage>(doc.RootElement.GetRawText(), options);
             case MessageType.StatusUpdateResponse:
                 return JsonSerializer.Deserialize<StatusUpdateResponseMessage>(doc.RootElement.GetRawText(), options);
             case MessageType.StatusUpdate:
