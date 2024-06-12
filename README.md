@@ -36,10 +36,12 @@ This project demonstrates a .NET application using channels for concurrent, high
 - [x] Streaming data
 	- [x] Get higher frequency data for a detailed view of a worker
 - [x] Saving data to long term storage
-- [ ] Worker to worker communcation routed thru coordinator
-	- [ ] Workers overheat and have to turn off, but they contact an inactive worker to take over
+- [x] Worker to worker communcation routed thru coordinator
+	- [x] Workers overheat and have to turn off, but they contact an inactive worker to take over
+- [ ] Documentation
 - [ ] GUI [Terminal.Gui](https://gui-cs.github.io/Terminal.Gui/index.html)
 - [ ] Improve project structure
+- [ ] Better handling of status updates
 - [ ] Tests 
 	- [ ] for data stores
 	- [ ] for other stuff that makes sense

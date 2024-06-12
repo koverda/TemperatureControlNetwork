@@ -58,9 +58,9 @@ public class Worker
         if (inactiveWorkers.Length > 0)
         {
             var workerToActivate = inactiveWorkers[_random.Next(inactiveWorkers.Length)];
-            Console.WriteLine($"Worker {_id:000}: has reached max temperature: {_temperature:##.#}°C, deactivating self and activating neighbor {workerToActivate}");
+            Console.WriteLine($"Worker {_id:000}: has reached max temperature: {_temperature:##.#}°C, needs to deactivate self and activate neighbor: {workerToActivate.Id}");
 
-            var overheatMessage = new OverheatTakeoverMessage(workerToActivate.Id);
+            var overheatMessage = new OverheatTakeoverMessage(_id, workerToActivate.Id);
             await _responseChannelWriter.WriteAsync(MessageJsonSerializer.Serialize(overheatMessage));
         }
     }
@@ -81,9 +81,6 @@ public class Worker
         await foreach (string item in _channelReader.ReadAllAsync())
         {
             var message = MessageJsonSerializer.Deserialize<Message>(item);
-
-            _messagesProcessed++;
-            Console.WriteLine($"Worker {_id} processed #{_messagesProcessed}");
 
             switch (message)
             {

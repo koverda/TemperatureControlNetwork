@@ -1,6 +1,4 @@
-﻿using System;
-using System.Text.Json;
-using System.Threading;
+﻿using System.Text.Json;
 using System.Threading.Channels;
 using TemperatureControlNetwork.Data.Interface;
 using TemperatureControlNetwork.Messaging;
@@ -109,10 +107,10 @@ public class Coordinator
                 }
 
                 // toggle random workers to destabilize system
-                if (_random.Next(0, 2) == 0)
+                var activate = _random.Next(0, 4) == 0;
+                int workerId = _random.Next(0, Config.NumberOfWorkers);
+                if (_workerStatusList.Any(w => w.Id == workerId && w.Active != activate))
                 {
-                    var activate = _random.Next(0, 2) == 0;
-                    int workerId = _random.Next(0, Config.NumberOfWorkers);
                     await ActivateWorker(workerId, activate);
                 }
 
@@ -199,6 +197,7 @@ public class Coordinator
                     }
                     case OverheatTakeoverMessage overheatTakeoverMessage:
                     {
+                        await ActivateWorker(overheatTakeoverMessage.WorkerToDeactivate, false);
                         await ActivateWorker(overheatTakeoverMessage.WorkerToActivate, true);
                         break;
                     }

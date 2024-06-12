@@ -1,6 +1,6 @@
 using System.Text.Json;
 using FluentAssertions;
-using TemperatureControlNetwork.Core;
+using TemperatureControlNetwork.Messaging;
 
 namespace Test;
 

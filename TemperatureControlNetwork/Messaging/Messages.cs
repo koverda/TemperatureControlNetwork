@@ -54,8 +54,9 @@ public class StatusUpdateMessage(List<WorkerStatus> workerStatusList) : Message
     public List<WorkerStatus> WorkerStatusList { get; init; } = workerStatusList;
 }
 
-public class OverheatTakeoverMessage(int workerToActivate) : Message
+public class OverheatTakeoverMessage(int workerToDeactivate, int workerToActivate) : Message
 {
     public override MessageType Type => MessageType.OverheatTakeover;
+    public int WorkerToDeactivate { get; set; } = workerToDeactivate;
     public int WorkerToActivate { get; set; } = workerToActivate;
 }
