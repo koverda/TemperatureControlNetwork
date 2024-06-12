@@ -1,12 +1,14 @@
 ﻿using System.Text.Json;
 using System.Threading;
 using System.Threading.Channels;
+using TemperatureControlNetwork.Data.Interface;
 
 namespace TemperatureControlNetwork.Core;
 
 public class Coordinator
 {
     private readonly CancellationToken _cancellationToken;
+    private readonly ITemperatureDataStore _temperatureDataStore;
     private readonly Random _random;
 
     private readonly Channel<string> _responseChannel;
@@ -17,10 +19,11 @@ public class Coordinator
     private readonly WorkerTemperatureList _workerTemperatureList = new([]);
 
 
-    public Coordinator(CancellationToken cancellationToken)
+    public Coordinator(CancellationToken cancellationToken, ITemperatureDataStore temperatureDataStore)
     {
         _responseChannel = Channel.CreateUnbounded<string>();
         _cancellationToken = cancellationToken;
+        _temperatureDataStore = temperatureDataStore;
         _random = new Random();
 
         for (int workerId = 0; workerId < Config.NumberOfWorkers; workerId++)
