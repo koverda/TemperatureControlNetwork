@@ -3,12 +3,12 @@
 public class WorkerTemperature
 {
     public int Id { get; set; }
-    public double AverageTemperature { get; set; }
+    public double Temperature { get; set; }
 
-    public WorkerTemperature(int id, double averageTemperature)
+    public WorkerTemperature(int id, double temperature)
     {
         Id = id;
-        AverageTemperature = averageTemperature;
+        Temperature = temperature;
     }
 }
 
@@ -18,7 +18,7 @@ public class WorkerTemperatureList
 
     public double AverageTemperature
     {
-        get { return WorkerTemperatures.Average(t => t.AverageTemperature); }
+        get { return WorkerTemperatures.Average(t => t.Temperature); }
     }
 
     public WorkerTemperatureList(List<WorkerTemperature> workerTemperatures)

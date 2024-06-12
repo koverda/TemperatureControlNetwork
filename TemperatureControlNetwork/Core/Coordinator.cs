@@ -47,6 +47,8 @@ public class Coordinator
         {
             while (!_cancellationToken.IsCancellationRequested)
             {
+                Console.WriteLine($"Average Temperature {_workerTemperatureList.AverageTemperature:##.#}");
+
                 // Request data from all workers
                 var dataMessage = new DataMessage { Data = "Data request from coordinator" };
                 var dataMessageJson = MessageJsonSerializer.Serialize(dataMessage);
@@ -178,6 +180,7 @@ public class Coordinator
                     case DataResponseMessage responseMessage:
                     {
                         Console.WriteLine($"Coordinator received response from Worker {responseMessage.WorkerId}: {responseMessage.Temperature:##.#}");
+                        _workerTemperatureList.WorkerTemperatures.First(w => w.Id == responseMessage.WorkerId).Temperature = responseMessage.Temperature;
                         break;
                     }
                     case StatusUpdateResponseMessage activationResponseMessage:

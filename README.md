@@ -2,20 +2,26 @@
 
 This project demonstrates a .NET application using channels for concurrent, high-performance communication between a coordinator and multiple workers.
 
+The workers in this case are heaters and temperature sensors, and the coordinator manages the workers to maintain an average temperature within a certain range. 
+
 ## Features
 
 - **Coordinator:**
-  - Manages multiple worker instances.
-  - Sends data and control messages to workers.
-  - Receives responses from workers.
+	- Manages multiple worker instances.
+	- Sends data and control messages to workers.
+	- Receives responses from workers.
+	- Can stream higher resolution data from workers.
+	- Can store data in whatever iplementation of a data store suits your needs. 
 
 - **Workers:**
-  - Each has its own channel for receiving messages.
-  - Processes data when active.
-  - Sends responses back to the coordinator.
+	- Workers are heaters that track temperature, heat up when activated, and cool down when deactivated. 
+	- Each has its own channel for receiving messages.
+	- Sends responses back to the coordinator.
+	- Track itself for overheating, if it overheats it finds an inactive worker to take over and messages to the coordinator to facilitate.
 
 - **Bidirectional Communication:**
-  - Uses channels for efficient, concurrent message passing.
+	- Uses channels for efficient, concurrent message passing.
+	- Uses IAsyncEnumerable for easy and efficient streaming data.
 
 ## Running the Application
 
