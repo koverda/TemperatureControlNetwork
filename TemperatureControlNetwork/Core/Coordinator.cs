@@ -9,7 +9,6 @@ public class Coordinator
     private readonly Random _random;
 
     private readonly Channel<string> _responseChannel;
-    private readonly int _numberOfWorkers;
 
     private readonly List<Channel<string>> _workerChannels = [];
     private readonly List<Worker> _workers = [];
@@ -19,12 +18,11 @@ public class Coordinator
 
     public Coordinator(CancellationToken cancellationToken)
     {
-        _numberOfWorkers = Config.NumberOfWorkers;
         _responseChannel = Channel.CreateUnbounded<string>();
         _cancellationToken = cancellationToken;
         _random = new Random();
 
-        for (int workerId = 0; workerId < _numberOfWorkers; workerId++)
+        for (int workerId = 0; workerId < Config.NumberOfWorkers; workerId++)
         {
             var workerChannel = Channel.CreateUnbounded<string>();
             _workerChannels.Add(workerChannel);
@@ -36,81 +34,121 @@ public class Coordinator
 
     public async Task StartAsync()
     {
-        var workerTasks = new List<Task>();
+        var workerTasks = _workers.Select(worker => worker.StartAsync()).ToList();
+        var readCoordinatorChannelTask = ReadCoordinatorChannelAsync();
 
-        foreach (var worker in _workers)
-        {
-            workerTasks.Add(worker.StartAsync());
-        }
-
-        var processResponsesTask = WatchCoordinatorChannelsAsync();
-        await CoordinatorLoop();
-
-        foreach (var workerChannel in _workerChannels)
-        {
-            workerChannel.Writer.Complete();
-        }
-
-        await Task.WhenAll(workerTasks);
-        await processResponsesTask;
+        await CoordinatorLoop(workerTasks, readCoordinatorChannelTask);
     }
 
-    private async Task CoordinatorLoop()
+    private async Task CoordinatorLoop(List<Task> workerTasks, Task processResponsesTask)
     {
-        while (!_cancellationToken.IsCancellationRequested)
+        try
         {
-            var dataMessage = new DataMessage { Data = "Data request from coordinator" };
-            var dataMessageJson = MessageJsonSerializer.Serialize(dataMessage);
-
-            // Send data to all active workers
-            foreach (var workerChannel in _workerChannels)
+            while (!_cancellationToken.IsCancellationRequested)
             {
-                await workerChannel.Writer.WriteAsync(dataMessageJson, _cancellationToken);
+                var dataMessage = new DataMessage { Data = "Data request from coordinator" };
+                var dataMessageJson = MessageJsonSerializer.Serialize(dataMessage);
+
+                // Send data to all active workers
+                foreach (var workerChannel in _workerChannels)
+                {
+                    if (workerChannel.Writer.TryWrite(dataMessageJson) == false)
+                    {
+                        await workerChannel.Writer.WriteAsync(dataMessageJson, _cancellationToken);
+                    }
+                }
+
+                await Task.Delay(Config.CoordinatorLoopDelay, _cancellationToken);
+
+                // Randomly activate or deactivate workers
+                if (_random.Next(0, 2) == 0)
+                {
+                    int workerId = _random.Next(0, Config.NumberOfWorkers);
+                    var controlMessage = new ControlMessage
+                    {
+                        WorkerId = workerId,
+                        Activate = _random.Next(0, 2) == 0
+                    };
+                    string controlMessageJson = MessageJsonSerializer.Serialize(controlMessage);
+                    if (_workerChannels[workerId].Writer.TryWrite(controlMessageJson) == false)
+                    {
+                        await _workerChannels[workerId].Writer.WriteAsync(controlMessageJson, _cancellationToken);
+                    }
+                }
             }
-
-            await Task.Delay(Config.CoordinatorLoopDelay, _cancellationToken);
-
-            // Randomly activate or deactivate workers
-            if (_random.Next(0, 2) == 0)
+        }
+        catch (OperationCanceledException)
+        {
+            // Handle the cancellation gracefully here
+            Console.WriteLine("Coordinator loop canceled.");
+        }
+        finally
+        {
+            Console.WriteLine("Stopping all workers");
+            foreach (var worker in _workerStatusList.Where(w => w.Active))
             {
-                int workerId = _random.Next(0, _numberOfWorkers);
                 var controlMessage = new ControlMessage
                 {
-                    WorkerId = workerId,
-                    Activate = _random.Next(0, 2) == 0
+                    WorkerId = worker.Id,
+                    Activate = false
                 };
                 string controlMessageJson = MessageJsonSerializer.Serialize(controlMessage);
-                await _workerChannels[workerId].Writer.WriteAsync(controlMessageJson, _cancellationToken);
+                _workerChannels[worker.Id].Writer.TryWrite(controlMessageJson);
             }
+
+            Console.WriteLine("Completing all channels");
+            foreach (var workerChannel in _workerChannels)
+            {
+                workerChannel.Writer.Complete();
+            }
+
+            await Task.WhenAll(workerTasks);
+
+            await processResponsesTask;
+            Console.WriteLine("Done with wind down");
+            Console.WriteLine("Coordinator loop finished.");
         }
     }
 
-    private async Task WatchCoordinatorChannelsAsync()
+    private async Task ReadCoordinatorChannelAsync()
     {
-        await foreach (var item in _responseChannel.Reader.ReadAllAsync(_cancellationToken))
+        try
         {
-            var message = MessageJsonSerializer.Deserialize<Message>(item);
-
-            switch (message)
+            await foreach (var item in _responseChannel.Reader.ReadAllAsync(_cancellationToken))
             {
-                case DataResponseMessage responseMessage:
-                {
-                    Console.WriteLine($"Coordinator received response from Worker {responseMessage.WorkerId}: {responseMessage.Temperature:##.#}");
-                }
-                    break;
-                case StatusUpdateResponseMessage activationResponseMessage:
-                {
-                    _workerStatusList.First(w => w.Id == activationResponseMessage.WorkerId).Active = activationResponseMessage.Active;
+                var message = MessageJsonSerializer.Deserialize<Message>(item);
 
-                    var workerStatusUpdateMessage = new StatusUpdateMessage(_workerStatusList);
-                    foreach (var workerChannel in _workerChannels)
+                switch (message)
+                {
+                    case DataResponseMessage responseMessage:
                     {
-                        await workerChannel.Writer.WriteAsync(JsonSerializer.Serialize(workerStatusUpdateMessage), _cancellationToken);
+                        Console.WriteLine($"Coordinator received response from Worker {responseMessage.WorkerId}: {responseMessage.Temperature:##.#}");
+                        break;
                     }
+                    case StatusUpdateResponseMessage activationResponseMessage:
+                    {
+                        _workerStatusList.First(w => w.Id == activationResponseMessage.WorkerId).Active = activationResponseMessage.Active;
 
-                    break;
+                        var workerStatusUpdateMessage = new StatusUpdateMessage(_workerStatusList);
+                        foreach (var workerChannel in _workerChannels)
+                        {
+                            await workerChannel.Writer.WriteAsync(JsonSerializer.Serialize(workerStatusUpdateMessage), _cancellationToken);
+                        }
+
+                        break;
+                    }
                 }
             }
+        }
+        catch (OperationCanceledException)
+        {
+            // Handle the cancellation gracefully here
+            Console.WriteLine("ReadCoordinatorChannelAsync canceled.");
+        }
+        finally
+        {
+            // Perform any necessary cleanup here
+            Console.WriteLine("ReadCoordinatorChannelAsync finished.");
         }
     }
 
