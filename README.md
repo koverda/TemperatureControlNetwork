@@ -33,9 +33,9 @@ This project demonstrates a .NET application using channels for concurrent, high
 - [x] Triggers for turning workers on and off
 	- [x] If too hot, coordinator turns off a worker
 	- [x] If too cold, coordinator turns on a worker
-- [ ] Streaming data
-	- [ ] Get higher frequency data for a detailed view of a worker
-- [ ] Saving data to long term storage
+- [x] Streaming data
+	- [x] Get higher frequency data for a detailed view of a worker
+- [x] Saving data to long term storage
 - [ ] Worker to worker communcation routed thru coordinator
 	- [ ] Workers overheat and have to turn off, but they contact an inactive worker to take over
 - [ ] GUI [Terminal.Gui](https://gui-cs.github.io/Terminal.Gui/index.html)
