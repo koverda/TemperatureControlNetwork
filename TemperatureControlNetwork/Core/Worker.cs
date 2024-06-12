@@ -1,4 +1,4 @@
-using System.Threading.Channels;
+﻿using System.Threading.Channels;
 
 namespace TemperatureControlNetwork.Core;
 
@@ -84,13 +84,14 @@ public class Worker
                 {
                     _temperature = Math.Max(_temperature - adjustmentStep, _minTemperature);
                 }
+
+                Console.WriteLine($"Worker {_id} temperature: {_temperature:##.#}°C");
             }
             else
             {
-                _temperature = Math.Max(_temperature - adjustmentStep, _minTemperature);
+                Console.WriteLine($"Worker {_id} is inactive");
             }
 
-            Console.WriteLine($"Worker {_id} temperature: {_temperature:##.#}°C");
             await Task.Delay(1000); // Update temperature every second
         }
     }
