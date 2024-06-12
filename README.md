@@ -53,14 +53,23 @@ components, data flow, and design considerations for the Temperature Control Net
 	- If the average temperature falls below a low threshold, the coordinator activates a random inactive worker.
 	- The coordinator sends ControlMessage to the selected worker to change its state.
 
-## Running the Application
+
+## 6. Design Considerations
+
+- **Scalability:** The system should be able to scale with an increasing number of workers.
+- **Fault Tolerance:** The system should handle worker failures gracefully and ensure the coordinator can still manage the remaining workers.
+- **Performance:** Efficient message passing and handling to ensure timely updates and adjustments.
+- **Configurability:** Parameters like temperature thresholds, adjustment steps, and delays should be configurable.
+
+
+## 7. Running the Application
 
 1. Clone the repository
 2. Build and run the application
 3. Ctrl + C to stop the application
 
 
-## To Do
+## 8. To Do
 
 - [x] Turning workers on and off and updating statuses everywhere
 - [x] Nice shutdown
