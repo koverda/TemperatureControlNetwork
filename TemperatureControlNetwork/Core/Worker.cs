@@ -1,4 +1,5 @@
-﻿using System.Threading.Channels;
+﻿using System.Runtime.CompilerServices;
+using System.Threading.Channels;
 
 namespace TemperatureControlNetwork.Core;
 
@@ -7,15 +8,15 @@ public class Worker
 {
     private readonly ChannelReader<string> _channelReader;
     private readonly int _id;
+    private readonly double _maxTemperature = Config.MaxTemperature;
+    private readonly double _minTemperature = Config.MinTemperature;
+    private readonly Random _random = new();
     private readonly ChannelWriter<string> _responseChannelWriter;
     private bool _isActive;
     private int _messagesProcessed;
-    private List<WorkerStatus> _workerStatusList = [];
 
     private double _temperature = Config.StartingTemperature;
-    private readonly double _minTemperature = Config.MinTemperature;
-    private readonly double _maxTemperature = Config.MaxTemperature;
-    private readonly Random _random = new();
+    private List<WorkerStatus> _workerStatusList = [];
 
     public Worker(
         ChannelReader<string> channelReader
@@ -29,6 +30,8 @@ public class Worker
         _messagesProcessed = 0;
         _isActive = true; // Workers start as active
     }
+
+    public int Id => _id;
 
 
     public async Task StartAsync()
@@ -75,7 +78,7 @@ public class Worker
                 case DataMessage dataMessage:
                 {
                     Console.WriteLine($"Worker {_id} received: {dataMessage.Data}");
-                    var responseMessage = new DataResponseMessage(workerId: _id, temperature: _temperature);
+                    var responseMessage = new DataResponseMessage(_id, _temperature);
                     await _responseChannelWriter.WriteAsync(MessageJsonSerializer.Serialize(responseMessage));
                     break;
                 }
@@ -86,6 +89,26 @@ public class Worker
                     break;
                 }
             }
+        }
+    }
+
+
+    public async IAsyncEnumerable<TemperatureData> GetTemperatureDataStream([EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            _temperature += (_random.NextDouble() - 0.5) / 5;
+
+            var data = new TemperatureData
+            {
+                WorkerId = _id,
+                Timestamp = DateTime.Now,
+                Temperature = _temperature
+            };
+
+            yield return data;
+
+            await Task.Delay(100, cancellationToken);
         }
     }
 }

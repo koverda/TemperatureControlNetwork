@@ -1,4 +1,5 @@
 ﻿using System.Text.Json;
+using System.Threading;
 using System.Threading.Channels;
 
 namespace TemperatureControlNetwork.Core;
@@ -197,6 +198,16 @@ public class Coordinator
         {
             // Perform any necessary cleanup here
             Console.WriteLine("ReadCoordinatorChannelAsync finished.");
+        }
+    }
+
+    private async Task StreamDataFromWorker(int workerId, CancellationToken cancellationToken)
+    {
+        var worker = _workers.First(w => w.Id == workerId);
+
+        await foreach (var data in worker.GetTemperatureDataStream().WithCancellation(cancellationToken))
+        {
+            Console.WriteLine($"WorkerId: {data.WorkerId}, Timestamp: {data.Timestamp:O}, Temperature: {data.Temperature:F2}°C");
         }
     }
 }
