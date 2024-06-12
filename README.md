@@ -39,3 +39,7 @@ This project demonstrates a .NET application using channels for concurrent, high
 - [ ] Worker to worker communcation routed thru coordinator
 	- [ ] Workers overheat and have to turn off, but they contact an inactive worker to take over
 - [ ] GUI [Terminal.Gui](https://gui-cs.github.io/Terminal.Gui/index.html)
+- [ ] Improve project structure
+- [ ] Tests 
+	- [ ] for data stores
+	- [ ] for other stuff that makes sense
