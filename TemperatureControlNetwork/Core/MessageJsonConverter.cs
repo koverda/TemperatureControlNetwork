@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace TemperatureControlNetwork.Core;
 
+// todo can i reduce access modifiers?
 public class MessageJsonConverter : JsonConverter<Message>
 {
     public override Message? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions? options)

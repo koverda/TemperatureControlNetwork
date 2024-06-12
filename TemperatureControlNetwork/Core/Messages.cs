@@ -1,6 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-
-namespace TemperatureControlNetwork.Core;
+﻿namespace TemperatureControlNetwork.Core;
 
 public enum MessageType
 {

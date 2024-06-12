@@ -1,9 +1,8 @@
-﻿using System;
-using System.Text.Json;
 using System.Threading.Channels;
 
 namespace TemperatureControlNetwork.Core;
 
+// todo thin out class
 public class Worker
 {
     private readonly ChannelReader<string> _channelReader;
@@ -65,7 +64,6 @@ public class Worker
             }
         }
     }
-
 
     private async Task UpdateTemperatureLoopAsync()
     {
