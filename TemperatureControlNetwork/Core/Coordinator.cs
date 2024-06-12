@@ -46,10 +46,9 @@ public class Coordinator
         {
             while (!_cancellationToken.IsCancellationRequested)
             {
+                // Request data from all workers
                 var dataMessage = new DataMessage { Data = "Data request from coordinator" };
                 var dataMessageJson = MessageJsonSerializer.Serialize(dataMessage);
-
-                // Send data to all active workers
                 foreach (var workerChannel in _workerChannels)
                 {
                     if (workerChannel.Writer.TryWrite(dataMessageJson) == false)
@@ -58,9 +57,52 @@ public class Coordinator
                     }
                 }
 
-                await Task.Delay(Config.CoordinatorLoopDelay, _cancellationToken);
+                // check temperatures
+                if (_workerTemperatureList.AverageTemperature > Config.HighTemperature)
+                {
+                    // turn off a worker
+                    var activeWorkers = _workerStatusList.Where(ws => ws.Active).ToArray();
+                    if (activeWorkers.Any())
+                    {
+                        int index = _random.Next(activeWorkers.Length);
+                        var randomActiveWorker = activeWorkers[index];
 
-                // Randomly activate or deactivate workers
+                        var controlMessage = new ControlMessage
+                        {
+                            WorkerId = randomActiveWorker.Id,
+                            Activate = false
+                        };
+                        string controlMessageJson = MessageJsonSerializer.Serialize(controlMessage);
+                        if (_workerChannels[randomActiveWorker.Id].Writer.TryWrite(controlMessageJson) == false)
+                        {
+                            await _workerChannels[randomActiveWorker.Id].Writer.WriteAsync(controlMessageJson, _cancellationToken);
+                        }
+                    }
+                }
+
+                if (_workerTemperatureList.AverageTemperature < Config.LowTemperature)
+                {
+                    // turn on a worker
+                    var inactiveWorkers = _workerStatusList.Where(ws => !ws.Active).ToArray();
+                    if (inactiveWorkers.Any())
+                    {
+                        int index = _random.Next(inactiveWorkers.Length);
+                        var randomInactiveWorker = inactiveWorkers[index];
+
+                        var controlMessage = new ControlMessage
+                        {
+                            WorkerId = randomInactiveWorker.Id,
+                            Activate = false
+                        };
+                        string controlMessageJson = MessageJsonSerializer.Serialize(controlMessage);
+                        if (_workerChannels[randomInactiveWorker.Id].Writer.TryWrite(controlMessageJson) == false)
+                        {
+                            await _workerChannels[randomInactiveWorker.Id].Writer.WriteAsync(controlMessageJson, _cancellationToken);
+                        }
+                    }
+                }
+
+                // toggle random workers to destabilize system
                 if (_random.Next(0, 2) == 0)
                 {
                     int workerId = _random.Next(0, Config.NumberOfWorkers);
@@ -75,39 +117,45 @@ public class Coordinator
                         await _workerChannels[workerId].Writer.WriteAsync(controlMessageJson, _cancellationToken);
                     }
                 }
+
+                await Task.Delay(Config.CoordinatorLoopDelay, _cancellationToken);
             }
         }
         catch (OperationCanceledException)
         {
-            // Handle the cancellation gracefully here
             Console.WriteLine("Coordinator loop canceled.");
         }
         finally
         {
-            Console.WriteLine("Stopping all workers");
-            foreach (var worker in _workerStatusList.Where(w => w.Active))
-            {
-                var controlMessage = new ControlMessage
-                {
-                    WorkerId = worker.Id,
-                    Activate = false
-                };
-                string controlMessageJson = MessageJsonSerializer.Serialize(controlMessage);
-                _workerChannels[worker.Id].Writer.TryWrite(controlMessageJson);
-            }
-
-            Console.WriteLine("Completing all channels");
-            foreach (var workerChannel in _workerChannels)
-            {
-                workerChannel.Writer.Complete();
-            }
-
-            await Task.WhenAll(workerTasks);
-
-            await processResponsesTask;
-            Console.WriteLine("Done with wind down");
-            Console.WriteLine("Coordinator loop finished.");
+            await HandleShutdownAsync(workerTasks, processResponsesTask);
         }
+    }
+
+    private async Task HandleShutdownAsync(List<Task> workerTasks, Task processResponsesTask)
+    {
+        Console.WriteLine("Stopping all workers");
+        foreach (var worker in _workerStatusList.Where(w => w.Active))
+        {
+            var controlMessage = new ControlMessage
+            {
+                WorkerId = worker.Id,
+                Activate = false
+            };
+            string controlMessageJson = MessageJsonSerializer.Serialize(controlMessage);
+            _workerChannels[worker.Id].Writer.TryWrite(controlMessageJson);
+        }
+
+        Console.WriteLine("Completing all channels");
+        foreach (var workerChannel in _workerChannels)
+        {
+            workerChannel.Writer.Complete();
+        }
+
+        await Task.WhenAll(workerTasks);
+
+        await processResponsesTask;
+        Console.WriteLine("Done with wind down");
+        Console.WriteLine("Coordinator loop finished.");
     }
 
     private async Task ReadCoordinatorChannelAsync()
@@ -150,16 +198,5 @@ public class Coordinator
             // Perform any necessary cleanup here
             Console.WriteLine("ReadCoordinatorChannelAsync finished.");
         }
-    }
-
-
-    private async Task WorkerLoopAsync()
-    {
-        while (true)
-        {
-        }
-
-        // This is the worker's main loop, we want it to run indefinitely and there's nothing to return
-        // ReSharper disable once FunctionNeverReturns
     }
 }

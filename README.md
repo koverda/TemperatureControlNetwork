@@ -24,18 +24,19 @@ This project demonstrates a .NET application using channels for concurrent, high
 3. Ctrl + C to stop the application
 
 
-## To DO
+## To Do
 
 - [x] Turning workers on and off and updating statuses everywhere
+- [x] Nice shutdown
+- [x] Temperature calculations
+	- [x] Workers send temp data to coordinator, it keeps an average 
+- [x] Triggers for turning workers on and off
+	- [x] If too hot, coordinator turns off a worker
+	- [x] If too cold, coordinator turns on a worker
 - [ ] Streaming data
 	- [ ] Maybe workers store higher frequency temperature data and stream it to the coordinator once they run low on space
 	- [ ] Manual way to get all workers to stream their data
 - [ ] Saving data to long term storage
-- [x] Temperature calculations
-	- [x] Workers send temp data to coordinator, it keeps an average 
-- [ ] Triggers for turning workers on and off
-	- [ ] If too hot, coordinator turns off a worker
-	- [ ] If too cold, coordinator turns on a worker
 - [ ] Worker to worker communcation routed thru coordinator
-	- [ ] Workers randomly fail and have to self repair - thus they contact an in-active worker to take over
+	- [ ] Workers overheat and have to turn off, but they contact an inactive worker to take over
 - [ ] GUI [Terminal.Gui](https://gui-cs.github.io/Terminal.Gui/index.html)
