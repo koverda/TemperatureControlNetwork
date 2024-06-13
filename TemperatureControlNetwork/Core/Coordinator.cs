@@ -1,15 +1,18 @@
 ﻿using System.Text.Json;
 using System.Threading.Channels;
+using TemperatureControlNetwork.Core.Interface;
 using TemperatureControlNetwork.Core.Models;
 using TemperatureControlNetwork.Data.Interface;
+using TemperatureControlNetwork.Gui.Interface;
 using TemperatureControlNetwork.Messaging;
 
 namespace TemperatureControlNetwork.Core;
 
-public class Coordinator
+public class Coordinator : ICoordinator
 {
     private readonly CancellationToken _cancellationToken;
     private readonly ITemperatureDataStore _temperatureDataStore;
+    private readonly IGui _gui;
     private readonly Random _random;
     private readonly Channel<string> _responseChannel;
     private readonly List<Channel<string>> _workerChannels = [];
@@ -17,11 +20,12 @@ public class Coordinator
     private readonly List<WorkerStatus> _workerStatusList = [];
     private readonly WorkerTemperatureList _workerTemperatureList = new([]);
 
-    public Coordinator(CancellationToken cancellationToken, ITemperatureDataStore temperatureDataStore)
+    public Coordinator(CancellationToken cancellationToken, ITemperatureDataStore temperatureDataStore, IGui gui)
     {
         _responseChannel = Channel.CreateUnbounded<string>();
         _cancellationToken = cancellationToken;
         _temperatureDataStore = temperatureDataStore;
+        _gui = gui;
         _random = new Random();
 
         for (int workerId = 0; workerId < Config.NumberOfWorkers; workerId++)
@@ -32,6 +36,8 @@ public class Coordinator
             _workerStatusList.Add(new WorkerStatus(workerId, active: true));
             _workerTemperatureList.WorkerTemperatures.Add(new WorkerTemperature(workerId, Config.StartingTemperature));
         }
+
+        DisplayWorkerStatus();
     }
 
     public async Task StartAsync()
@@ -184,15 +190,17 @@ public class Coordinator
                         _workerTemperatureList.WorkerTemperatures.First(w => w.Id == responseMessage.WorkerId).Temperature = responseMessage.Temperature;
                         break;
                     }
-                    case StatusUpdateResponseMessage activationResponseMessage:
+                    case StatusUpdateResponseMessage statusUpdateResponseMessage:
                     {
-                        _workerStatusList.First(w => w.Id == activationResponseMessage.WorkerId).Active = activationResponseMessage.Active;
+                        _workerStatusList.First(w => w.Id == statusUpdateResponseMessage.WorkerId).Active = statusUpdateResponseMessage.Active;
 
                         var workerStatusUpdateMessage = new StatusUpdateMessage(_workerStatusList);
                         foreach (var workerChannel in _workerChannels)
                         {
                             await workerChannel.Writer.WriteAsync(JsonSerializer.Serialize(workerStatusUpdateMessage), _cancellationToken);
                         }
+
+                        DisplayWorkerStatus();
 
                         break;
                     }
@@ -224,5 +232,10 @@ public class Coordinator
             Console.WriteLine($"WorkerId: {data.WorkerId}, Timestamp: {data.Timestamp:O}, Temperature: {data.Temperature:F2}°C");
             await _temperatureDataStore.AddTemperatureDataAsync(data);
         }
+    }
+
+    private void DisplayWorkerStatus()
+    {
+        _gui.DisplayWorkerStatus(_workerStatusList, _workerTemperatureList);
     }
 }
