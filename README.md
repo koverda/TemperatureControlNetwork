@@ -84,7 +84,7 @@ components, data flow, and design considerations for the Temperature Control Net
 - [x] Worker to worker communcation routed thru coordinator
 	- [x] Workers overheat and have to turn off, but they contact an inactive worker to take over
 - [ ] Improve project structure
-- [ ] Better handling of status updates with like events or whatever
+- [ ] Better handling of status updates
 - [ ] Documentation
 - [ ] GUI [Terminal.Gui](https://gui-cs.github.io/Terminal.Gui/index.html)
 	- [ ] Streaming data for GUI
