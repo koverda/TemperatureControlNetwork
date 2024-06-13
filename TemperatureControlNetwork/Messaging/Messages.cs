@@ -1,4 +1,4 @@
-﻿using TemperatureControlNetwork.Core;
+﻿using TemperatureControlNetwork.Core.Models;
 
 namespace TemperatureControlNetwork.Messaging;
 

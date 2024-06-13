@@ -1,4 +1,4 @@
-﻿namespace TemperatureControlNetwork.Core
+﻿namespace TemperatureControlNetwork.Core.Models
 {
     public class TemperatureData
     {

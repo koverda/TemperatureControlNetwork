@@ -1,5 +1,6 @@
 ﻿using System.Text.Json;
 using System.Threading.Channels;
+using TemperatureControlNetwork.Core.Models;
 using TemperatureControlNetwork.Data.Interface;
 using TemperatureControlNetwork.Messaging;
 

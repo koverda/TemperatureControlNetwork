@@ -1,7 +1,7 @@
 ﻿using System.Globalization;
 using CsvHelper;
 using CsvHelper.Configuration;
-using TemperatureControlNetwork.Core;
+using TemperatureControlNetwork.Core.Models;
 using TemperatureControlNetwork.Data.Interface;
 
 namespace TemperatureControlNetwork.Data;
