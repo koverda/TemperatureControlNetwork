@@ -52,6 +52,9 @@ components, data flow, and design considerations for the Temperature Control Net
 	- If the average temperature exceeds a high threshold, the coordinator deactivates a random active worker.
 	- If the average temperature falls below a low threshold, the coordinator activates a random inactive worker.
 	- The coordinator sends ControlMessage to the selected worker to change its state.
+	
+**4.4 Worker Streaming to Coordinator**
+	- If requested through the UI (TODO), the selected worker streams real time data to the coordiantor.
 
 
 ## 6. Design Considerations
@@ -83,13 +86,16 @@ components, data flow, and design considerations for the Temperature Control Net
 - [x] Saving data to long term storage
 - [x] Worker to worker communcation routed thru coordinator
 	- [x] Workers overheat and have to turn off, but they contact an inactive worker to take over
-- [ ] Improve project structure
+- [-] Improve project structure
 - [ ] Better handling of status updates
-- [ ] Documentation
-- [ ] GUI [Terminal.Gui](https://gui-cs.github.io/Terminal.Gui/index.html)
+- [-] Documentation
+- [-] GUI [Terminal.Gui](https://gui-cs.github.io/Terminal.Gui/index.html)
+	- [x] Base GUI
+	- [ ] Show coordinator average
+	- [ ] Show graphs
 	- [ ] Streaming data for GUI
 - [ ] Tests 
 	- [ ] for data stores
-	- [ ] for other stuff that makes sense
+	- [ ] for other components
 - [ ] Encrypt stored data 
-- [ ] System architecture document
+- [-] System architecture document

@@ -1,4 +1,4 @@
-﻿using System.Text.Json;
+using System.Text.Json;
 using System.Threading.Channels;
 using TemperatureControlNetwork.Core.Interface;
 using TemperatureControlNetwork.Core.Models;
@@ -8,6 +8,10 @@ using TemperatureControlNetwork.Messaging;
 
 namespace TemperatureControlNetwork.Core;
 
+/// <summary>
+/// The Coordinator class manages the interaction between workers, the GUI, and the temperature data store.
+/// It also handles control messages and worker status updates.
+/// </summary>
 public class Coordinator : ICoordinator
 {
     private readonly CancellationToken _cancellationToken;
@@ -20,6 +24,12 @@ public class Coordinator : ICoordinator
     private readonly List<WorkerStatus> _workerStatusList = [];
     private readonly WorkerTemperatureList _workerTemperatureList = new([]);
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Coordinator"/> class.
+    /// </summary>
+    /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
+    /// <param name="temperatureDataStore">The temperature data store.</param>
+    /// <param name="gui">The GUI interface to display worker statuses.</param>
     public Coordinator(CancellationToken cancellationToken, ITemperatureDataStore temperatureDataStore, IGui gui)
     {
         _responseChannel = Channel.CreateUnbounded<string>();
@@ -40,6 +50,10 @@ public class Coordinator : ICoordinator
         DisplayWorkerStatus();
     }
 
+    /// <summary>
+    /// Starts the coordinator and begins the process of managing workers and handling messages.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     public async Task StartAsync()
     {
         var workerTasks = _workers.Select(worker => worker.StartAsync()).ToList();
@@ -48,6 +62,12 @@ public class Coordinator : ICoordinator
         await CoordinatorLoop(workerTasks, readCoordinatorChannelTask);
     }
 
+    /// <summary>
+    /// The main loop of the Coordinator that manages worker tasks and processes responses.
+    /// </summary>
+    /// <param name="workerTasks">A list of tasks representing the worker operations.</param>
+    /// <param name="processResponsesTask">A task for processing responses from the workers.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     private async Task CoordinatorLoop(List<Task> workerTasks, Task processResponsesTask)
     {
         try
@@ -133,6 +153,12 @@ public class Coordinator : ICoordinator
         }
     }
 
+    /// <summary>
+    /// Sends an activation or deactivation command to a specific worker.
+    /// </summary>
+    /// <param name="workerId">The ID of the worker to activate or deactivate.</param>
+    /// <param name="activate">A boolean value indicating whether to activate (<c>true</c>) or deactivate (<c>false</c>) the worker.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     private async Task ActivateWorker(int workerId, bool activate)
     {
         var controlMessage = new ControlMessage
@@ -147,6 +173,12 @@ public class Coordinator : ICoordinator
         }
     }
 
+    /// <summary>
+    /// Handles the shutdown process by stopping all workers and completing all channels.
+    /// </summary>
+    /// <param name="workerTasks">The list of worker tasks to wait for completion.</param>
+    /// <param name="processResponsesTask">The task for processing responses.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     private async Task HandleShutdownAsync(List<Task> workerTasks, Task processResponsesTask)
     {
         Console.WriteLine("Stopping all workers");
@@ -174,6 +206,10 @@ public class Coordinator : ICoordinator
         Console.WriteLine("Coordinator loop finished.");
     }
 
+    /// <summary>
+    /// Reads and processes messages from the coordinator's response channel.
+    /// </summary>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     private async Task ReadCoordinatorChannelAsync()
     {
         try
@@ -223,6 +259,12 @@ public class Coordinator : ICoordinator
         }
     }
 
+    /// <summary>
+    /// Streams data from a specified worker and stores it in the temperature data store.
+    /// </summary>
+    /// <param name="workerId">The ID of the worker to stream data from.</param>
+    /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     private async Task StreamDataFromWorker(int workerId, CancellationToken cancellationToken)
     {
         var worker = _workers.First(w => w.Id == workerId);
@@ -234,6 +276,9 @@ public class Coordinator : ICoordinator
         }
     }
 
+    /// <summary>
+    /// Displays the current status of all workers using the GUI.
+    /// </summary>
     private void DisplayWorkerStatus()
     {
         _gui.DisplayWorkerStatus(_workerStatusList, _workerTemperatureList);
