@@ -18,7 +18,7 @@ public class Coordinator : ICoordinator
     private readonly ITemperatureDataStore _temperatureDataStore;
     private readonly IGui _gui;
     private readonly Random _random;
-    private readonly Channel<string> _responseChannel;
+    private readonly Channel<string> _coordinatorChannel;
     private readonly List<Channel<string>> _workerChannels = [];
     private readonly List<Worker> _workers = [];
     private readonly List<WorkerStatus> _workerStatusList = [];
@@ -32,7 +32,7 @@ public class Coordinator : ICoordinator
     /// <param name="gui">The GUI interface to display worker statuses.</param>
     public Coordinator(CancellationToken cancellationToken, ITemperatureDataStore temperatureDataStore, IGui gui)
     {
-        _responseChannel = Channel.CreateUnbounded<string>();
+        _coordinatorChannel = Channel.CreateUnbounded<string>();
         _cancellationToken = cancellationToken;
         _temperatureDataStore = temperatureDataStore;
         _gui = gui;
@@ -42,7 +42,7 @@ public class Coordinator : ICoordinator
         {
             var workerChannel = Channel.CreateUnbounded<string>();
             _workerChannels.Add(workerChannel);
-            _workers.Add(new Worker(workerChannel.Reader, _responseChannel.Writer, workerId));
+            _workers.Add(new Worker(workerChannel.Reader, _coordinatorChannel.Writer, workerId));
             _workerStatusList.Add(new WorkerStatus(workerId, active: true));
             _workerTemperatureList.WorkerTemperatures.Add(new WorkerTemperature(workerId, Config.StartingTemperature));
         }
@@ -79,13 +79,7 @@ public class Coordinator : ICoordinator
                 // Request data from all workers
                 var dataMessage = new DataMessage { Data = "Data request from coordinator" };
                 var dataMessageJson = MessageJsonSerializer.Serialize(dataMessage);
-                foreach (var workerChannel in _workerChannels)
-                {
-                    if (workerChannel.Writer.TryWrite(dataMessageJson) == false)
-                    {
-                        await workerChannel.Writer.WriteAsync(dataMessageJson, _cancellationToken);
-                    }
-                }
+                await MessageAllWorkers(dataMessageJson);
 
                 // check temperatures
                 if (_workerTemperatureList.AverageTemperature > Config.HighTemperature)
@@ -153,6 +147,17 @@ public class Coordinator : ICoordinator
         }
     }
 
+    private async Task MessageAllWorkers(string messageJson)
+    {
+        foreach (var workerChannel in _workerChannels)
+        {
+            if (workerChannel.Writer.TryWrite(messageJson) == false)
+            {
+                await workerChannel.Writer.WriteAsync(messageJson, _cancellationToken);
+            }
+        }
+    }
+
     /// <summary>
     /// Sends an activation or deactivation command to a specific worker.
     /// </summary>
@@ -214,39 +219,11 @@ public class Coordinator : ICoordinator
     {
         try
         {
-            await foreach (var item in _responseChannel.Reader.ReadAllAsync(_cancellationToken))
+            await foreach (string item in _coordinatorChannel.Reader.ReadAllAsync(_cancellationToken))
             {
                 var message = MessageJsonSerializer.Deserialize<IMessage>(item);
 
-                switch (message)
-                {
-                    case DataResponseMessage responseMessage:
-                    {
-                        Console.WriteLine($"Coordinator received response from Worker {responseMessage.WorkerId}: {responseMessage.Temperature:##.#}");
-                        _workerTemperatureList.WorkerTemperatures.First(w => w.Id == responseMessage.WorkerId).Temperature = responseMessage.Temperature;
-                        break;
-                    }
-                    case StatusUpdateResponseMessage statusUpdateResponseMessage:
-                    {
-                        _workerStatusList.First(w => w.Id == statusUpdateResponseMessage.WorkerId).Active = statusUpdateResponseMessage.Active;
-
-                        var workerStatusUpdateMessage = new StatusUpdateMessage(_workerStatusList);
-                        foreach (var workerChannel in _workerChannels)
-                        {
-                            await workerChannel.Writer.WriteAsync(JsonSerializer.Serialize(workerStatusUpdateMessage), _cancellationToken);
-                        }
-
-                        DisplayWorkerStatus();
-
-                        break;
-                    }
-                    case OverheatTakeoverMessage overheatTakeoverMessage:
-                    {
-                        await ActivateWorker(overheatTakeoverMessage.WorkerToDeactivate, false);
-                        await ActivateWorker(overheatTakeoverMessage.WorkerToActivate, true);
-                        break;
-                    }
-                }
+                await HandleIncomingMessage(message);
             }
         }
         catch (OperationCanceledException)
@@ -256,6 +233,41 @@ public class Coordinator : ICoordinator
         finally
         {
             Console.WriteLine("ReadCoordinatorChannelAsync finished.");
+        }
+    }
+
+    /// <summary>
+    /// Handles incoming messages and performs actions based on the message type.
+    /// </summary>
+    /// <param name="message">The incoming message to handle.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    private async Task HandleIncomingMessage(IMessage message)
+    {
+        switch (message)
+        {
+            case DataResponseMessage responseMessage:
+            {
+                Console.WriteLine($"Coordinator received response from Worker {responseMessage.WorkerId}: {responseMessage.Temperature:##.#}");
+                _workerTemperatureList.WorkerTemperatures.First(w => w.Id == responseMessage.WorkerId).Temperature = responseMessage.Temperature;
+                break;
+            }
+            case StatusUpdateResponseMessage statusUpdateResponseMessage:
+            {
+                _workerStatusList.First(w => w.Id == statusUpdateResponseMessage.WorkerId).Active = statusUpdateResponseMessage.Active;
+
+                var workerStatusUpdateMessage = new StatusUpdateMessage(_workerStatusList);
+                await MessageAllWorkers(JsonSerializer.Serialize(workerStatusUpdateMessage));
+
+                DisplayWorkerStatus();
+
+                break;
+            }
+            case OverheatTakeoverMessage overheatTakeoverMessage:
+            {
+                await ActivateWorker(overheatTakeoverMessage.WorkerToDeactivate, false);
+                await ActivateWorker(overheatTakeoverMessage.WorkerToActivate, true);
+                break;
+            }
         }
     }
 
