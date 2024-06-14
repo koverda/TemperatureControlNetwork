@@ -91,6 +91,7 @@ components, data flow, and design considerations for the Temperature Control Net
 - [-] Documentation
 - [-] GUI [Terminal.Gui](https://gui-cs.github.io/Terminal.Gui/index.html)
 	- [x] Base GUI
+	- [ ] Wind-down app from GUI
 	- [ ] Show coordinator average
 	- [ ] Show graphs
 	- [ ] Streaming data for GUI

@@ -31,7 +31,8 @@ internal static class Program
         Task uiTask = Task.Run(() =>
         {
             gui.Run();
-            gui.Stop()
+            gui.Stop();
+            cancellationTokenSource.Cancel();
         });
 
         await Task.WhenAll(coordinatorTask, uiTask);
