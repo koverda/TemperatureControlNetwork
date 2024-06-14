@@ -46,8 +46,6 @@ public class Coordinator : ICoordinator
             _workerStatusList.Add(new WorkerStatus(workerId, active: true));
             _workerTemperatureList.WorkerTemperatures.Add(new WorkerTemperature(workerId, Config.StartingTemperature));
         }
-
-        DisplayWorkerStatus();
     }
 
     /// <summary>
@@ -74,6 +72,7 @@ public class Coordinator : ICoordinator
         {
             while (!_cancellationToken.IsCancellationRequested)
             {
+                DisplayWorkerStatus();
                 Console.WriteLine($"Average Temperature {_workerTemperatureList.AverageTemperature:##.#}");
 
                 // Request data from all workers
@@ -116,7 +115,7 @@ public class Coordinator : ICoordinator
                         var controlMessage = new ControlMessage
                         {
                             WorkerId = randomInactiveWorker.Id,
-                            Activate = false
+                            Activate = true
                         };
                         string controlMessageJson = MessageJsonSerializer.Serialize(controlMessage);
                         if (_workerChannels[randomInactiveWorker.Id].Writer.TryWrite(controlMessageJson) == false)
@@ -127,9 +126,10 @@ public class Coordinator : ICoordinator
                 }
 
                 // toggle random workers to destabilize system
-                var activate = _random.Next(0, 4) == 0;
+                var activate = _random.Next(0, 2) == 0;
                 int workerId = _random.Next(0, Config.NumberOfWorkers);
-                if (_workerStatusList.Any(w => w.Id == workerId && w.Active != activate))
+                var randomizer = _random.Next(4) == 0;
+                if (randomizer && _workerStatusList.Any(w => w.Id == workerId && w.Active != activate))
                 {
                     await ActivateWorker(workerId, activate);
                 }
@@ -257,8 +257,6 @@ public class Coordinator : ICoordinator
 
                 var workerStatusUpdateMessage = new StatusUpdateMessage(_workerStatusList);
                 await MessageAllWorkers(JsonSerializer.Serialize(workerStatusUpdateMessage));
-
-                DisplayWorkerStatus();
 
                 break;
             }

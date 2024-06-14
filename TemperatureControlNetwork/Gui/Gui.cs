@@ -10,6 +10,7 @@ public class Gui : IGui
 {
     private readonly TableView _workerTableView;
     private readonly DataTable _workerStatusTable;
+    private readonly Label _averageTemperatureLabel;
 
     public Gui()
     {
@@ -36,16 +37,26 @@ public class Gui : IGui
         top.Add(window);
         top.Add(menu);
 
-        _workerTableView = new TableView
+
+        _averageTemperatureLabel = new Label
         {
             X = 0,
             Y = 0,
+            Width = Dim.Fill(),
+            Text = "Average Temperature: 0 °C"
+        };
+
+        _workerTableView = new TableView
+        {
+            X = 0,
+            Y = 3,
             Width = Dim.Fill(),
             Height = Dim.Fill()
         };
 
 
         window.Add(_workerTableView);
+        window.Add(_averageTemperatureLabel);
 
         _workerStatusTable = new DataTable();
         _workerStatusTable.Columns.Add("Worker ID", typeof(int));
@@ -74,6 +85,7 @@ public class Gui : IGui
             {
                 _workerTableView.Table = _workerStatusTable;
                 _workerTableView.SetNeedsDisplay();
+                _averageTemperatureLabel.Text = $"Average Temperature: {workerTemperatureList.AverageTemperature:##.#} °C";
             }
             catch (RowNotInTableException e)
             {

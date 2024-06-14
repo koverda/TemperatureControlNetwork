@@ -5,9 +5,9 @@
         public const int NumberOfWorkers = 10;
         public const double StartingTemperature = 20.0;
 
-        public const int WorkerLoopDelay = 50;
-        public const int WorkerStreamDelay = 10;
-        public const int CoordinatorLoopDelay = 100;
+        public const int WorkerLoopDelay = 500;
+        public const int WorkerStreamDelay = 100;
+        public const int CoordinatorLoopDelay = 1000;
 
         public const double MinTemperature = 10.0;
         public const double MaxTemperature = 30.0;
