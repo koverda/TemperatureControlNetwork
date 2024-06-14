@@ -52,18 +52,20 @@ public class Gui : IGui
 
         Application.MainLoop.Invoke(() =>
         {
-            _workerTableView.Table = _workerStatusTable;
-            _workerTableView.SetNeedsDisplay();
+            try
+            {
+                _workerTableView.Table = _workerStatusTable;
+                _workerTableView.SetNeedsDisplay();
+            }
+            catch (RowNotInTableException e)
+            {
+                Console.WriteLine(e);
+            }
         });
     }
 
     public void Run()
     {
         Application.Run();
-    }
-
-    public void Stop()
-    {
-        Application.RequestStop();
     }
 }
