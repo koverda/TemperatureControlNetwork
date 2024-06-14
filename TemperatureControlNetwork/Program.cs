@@ -28,7 +28,11 @@ internal static class Program
         var gui = serviceProvider.GetRequiredService<IGui>();
 
         Task coordinatorTask = Task.Run(async () => await coordinator.StartAsync());
-        Task uiTask = Task.Run(() => gui.Run());
+        Task uiTask = Task.Run(() =>
+        {
+            gui.Run();
+            gui.Stop()
+        });
 
         await Task.WhenAll(coordinatorTask, uiTask);
     }
