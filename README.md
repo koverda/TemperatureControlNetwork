@@ -97,6 +97,7 @@ components, data flow, and design considerations for the Temperature Control Net
 	- [ ] Streaming data for GUI
 - [ ] Tests 
 	- [ ] for data stores
+	- [ ] channel functionality for workers and coordinator
 	- [ ] for other components
 - [ ] Encrypt stored data 
 - [-] System architecture document
